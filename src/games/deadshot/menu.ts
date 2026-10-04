@@ -145,8 +145,8 @@ export class Menu {
   }
 
   updateSettings(s: ValeSettings): void {
+    // Stored only: re-rendering here would replace a slider mid-drag.
     this.settings = s;
-    if (this.tab === 'settings' && this.root.style.display !== 'none') this.setTab('settings');
   }
 
   setPlayerName(name: string): void {

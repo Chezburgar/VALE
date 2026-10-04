@@ -1604,6 +1604,9 @@ input[type='range']::-moz-range-thumb {
   gap: 10px;
   pointer-events: none;
 }
+.vale-playing .vale-toasts {
+  bottom: 150px;
+}
 .vale-toast {
   display: flex;
   align-items: center;

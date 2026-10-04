@@ -171,7 +171,7 @@ export class Effects {
     }
   }
 
-  update(dt: number): void {
+  update(dt: number, cam?: THREE.Vector3): void {
     this.time += dt;
     for (const t of this.tracers) {
       if (!t.active) continue;
@@ -182,6 +182,17 @@ export class Effects {
         t.active = false;
         t.mesh.visible = false;
         continue;
+      }
+      if (cam) {
+        // A round flying past the camera would fill the screen; skip that bit.
+        const hx = t.sx + t.dx * head - cam.x;
+        const hy = t.sy + t.dy * head - cam.y;
+        const hz = t.sz + t.dz * head - cam.z;
+        if (hx * hx + hy * hy + hz * hz < 9) {
+          t.mesh.visible = false;
+          continue;
+        }
+        t.mesh.visible = true;
       }
       const l = Math.max(0.01, head - tail);
       t.mesh.position.set(t.sx + t.dx * head, t.sy + t.dy * head, t.sz + t.dz * head);

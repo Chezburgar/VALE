@@ -18,6 +18,10 @@ export class Input {
   constructor(private target: HTMLElement) {
     this.listen(window, 'keydown', (e) => {
       const k = e as KeyboardEvent;
+      // Let text fields (LAN address, chat) receive keys; sliders/toggles don't count.
+      const t = k.target as HTMLElement | null;
+      const textEntry = t instanceof HTMLInputElement ? !['range', 'checkbox', 'radio', 'button'].includes(t.type) : t?.tagName === 'TEXTAREA' || t?.isContentEditable;
+      if (textEntry) return;
       if (this.onKey) this.onKey(k.code, k);
       if (!this.enabled) return;
       if (['Space', 'Tab', 'ShiftLeft', 'ControlLeft', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Backquote'].includes(k.code)) k.preventDefault();

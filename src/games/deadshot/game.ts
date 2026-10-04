@@ -80,6 +80,7 @@ export class Game {
   private shotCounter = 0;
   private respawnRequested = false;
   private tmpV = new THREE.Vector3();
+  private gunCache = new Map<string, string>();
   /** Test hook: forced input merged over the keyboard/mouse each frame. */
   debugInput: Partial<Actor['input']> | null = null;
   /** Test hook: free camera with HUD and weapon hidden (used for store screenshots). */
@@ -237,8 +238,7 @@ export class Game {
 
   private gunPreview(cls: ClassId, tier: Tier): string {
     const key = `${cls}:${tier}`;
-    const cache = (this as unknown as { _gunCache?: Map<string, string> })._gunCache ?? new Map<string, string>();
-    (this as unknown as { _gunCache?: Map<string, string> })._gunCache = cache;
+    const cache = this.gunCache;
     const hit = cache.get(key);
     if (hit) return hit;
     const W = 320;
@@ -316,6 +316,7 @@ export class Game {
   }
 
   private startOffline(): void {
+    (document.activeElement as HTMLElement | null)?.blur?.();
     this.audio.resume();
     this.audio.ui('start');
     this.input.requestLock();
@@ -387,7 +388,11 @@ export class Game {
   }
 
   private leaveMatch(): void {
-    if (this.online) this.net?.send({ t: 'leave' });
+    if (this.online && this.net) {
+      this.net.send({ t: 'leave' });
+      this.net.room = null;
+      this.net.send({ t: 'list' });
+    }
     this.cleanupMatch();
     this.online = false;
     this.state = 'menu';
@@ -405,6 +410,7 @@ export class Game {
   private playAgain(): void {
     if (this.online) {
       this.menu.showEnd(null);
+      this.hud.message('Next round starts automatically', 4000);
       return;
     }
     this.menu.showEnd(null);
@@ -426,6 +432,8 @@ export class Game {
     this.menu.showPause(false, this.online);
     this.state = 'playing';
     this.audio.setMuffled(false);
+    // Don't leave keyboard focus on a menu control (Space would press it).
+    (document.activeElement as HTMLElement | null)?.blur?.();
     this.input.requestLock();
   }
 
@@ -828,7 +836,7 @@ export class Game {
     if (match.settings.mode === 'kc') this.effects.syncTags(match.tags, local.team);
     if (match.flags.length) this.effects.syncFlags(match.flags, local.team, FLAG_RADIUS);
     if (match.hardpoint) this.effects.syncHardpoint(match.hardpoint, local.team, HP_RADIUS);
-    this.effects.update(dt);
+    this.effects.update(dt, this.camera.position);
     this.worldVis?.update(dt, this.camera);
     this.muzzleLight.intensity = Math.max(0, this.muzzleLight.intensity - dt * 300);
     if (this.muzzleLight.intensity > 0) {

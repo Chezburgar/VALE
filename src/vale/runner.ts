@@ -87,6 +87,7 @@ export async function launchGame(game: CatalogGame, onExit: () => void): Promise
 
   const root = h('div', { class: 'vale-runner' }, host, overlay, launching);
   document.body.appendChild(root);
+  document.body.classList.add('vale-playing');
   appEl?.classList.add('is-hidden');
 
   let overlayOpen = false;
@@ -162,6 +163,7 @@ export async function launchGame(game: CatalogGame, onExit: () => void): Promise
     if (document.pointerLockElement) document.exitPointerLock();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     root.remove();
+    document.body.classList.remove('vale-playing');
     appEl?.classList.remove('is-hidden');
     running = null;
     onExit();
