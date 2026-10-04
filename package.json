@@ -1,0 +1,31 @@
+{
+  "name": "vale",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Vale - a PC game store & launcher",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "start": "node server/index.js",
+    "serve": "npm run build && node server/index.js",
+    "check:maps": "rolldown scripts/validate-maps.ts -f esm -o .cache/validate-maps.mjs && node .cache/validate-maps.mjs",
+    "sim": "rolldown scripts/sim.ts -f esm -o .cache/sim.mjs && node .cache/sim.mjs"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/rajdhani": "^5.3.0",
+    "three": "^0.186.1",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/three": "^0.186.0",
+    "@types/ws": "^8.18.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  }
+}
