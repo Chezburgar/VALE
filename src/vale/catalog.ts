@@ -121,7 +121,7 @@ export const CATALOG: CatalogGame[] = [
       ],
     },
     entry: 'src/games/deadshot/index.ts',
-    approxSize: 1_450_000,
+    approxSize: 1_550_000,
     load: () => import('../games/deadshot/index').then((m) => m.default),
   },
 ];
