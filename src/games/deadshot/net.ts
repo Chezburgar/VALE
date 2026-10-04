@@ -147,21 +147,23 @@ export class NetClient {
   }
 
   /** Smoothly moves remote players toward their latest network state. */
-  interpolate(): void {
+  interpolate(dt: number): void {
+    const k = 1 - Math.exp(-dt * 16);
     for (const a of this.remotes.values()) {
+      a.spawnProtect = Math.max(0, a.spawnProtect - dt);
+      a.kick = Math.max(0, a.kick - dt * 6);
       const t = a.netTarget;
       if (!t || !a.alive) continue;
-      const k = 0.35;
       a.body.x += (t.x - a.body.x) * k;
       a.body.y += (t.y - a.body.y) * k;
       a.body.z += (t.z - a.body.z) * k;
       let dy = t.yaw - a.yaw;
       while (dy > Math.PI) dy -= Math.PI * 2;
       while (dy < -Math.PI) dy += Math.PI * 2;
-      a.yaw += dy * 0.5;
-      a.pitch += (t.pitch - a.pitch) * 0.5;
+      a.yaw += dy * Math.min(1, k * 1.5);
+      a.pitch += (t.pitch - a.pitch) * Math.min(1, k * 1.5);
       a.speed = Math.hypot(a.body.vx, a.body.vz);
-      if (a.body.onGround) a.walkPhase += a.speed * (1 / 60) * 1.25;
+      if (a.body.onGround) a.walkPhase += a.speed * dt * 1.25;
     }
   }
 
@@ -192,6 +194,12 @@ export class NetClient {
     a.team = p.team;
     a.classId = p.cls;
     a.tier = p.tier;
+    if (p.alive && !a.alive) {
+      // Already in the fight when we joined; position arrives with the next state batch.
+      a.alive = true;
+      a.health = 100;
+      a.netTarget = null;
+    }
     Object.assign(a, { kills: p.kills, deaths: p.deaths, score: p.score, assists: p.assists });
     return a;
   }
@@ -261,6 +269,10 @@ export class NetClient {
           const [id, x, y, z, yaw, pitch, vx, vz, stance, cls, tier, ads, ground] = row;
           const a = this.remotes.get(id);
           if (!a) continue;
+          if (!a.netTarget) {
+            Object.assign(a.body, { x, y, z });
+            a.yaw = yaw;
+          }
           a.netTarget = { x, y, z, yaw, pitch, t: performance.now() };
           a.body.vx = vx;
           a.body.vz = vz;

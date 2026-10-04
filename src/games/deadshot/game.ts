@@ -82,6 +82,8 @@ export class Game {
   private tmpV = new THREE.Vector3();
   /** Test hook: forced input merged over the keyboard/mouse each frame. */
   debugInput: Partial<Actor['input']> | null = null;
+  /** Test hook: free camera with HUD and weapon hidden (used for store screenshots). */
+  photoCam: { pos: [number, number, number]; target: [number, number, number]; fov?: number } | null = null;
 
   constructor(
     container: HTMLElement,
@@ -862,9 +864,15 @@ export class Game {
     this.hud.drawMinimap(match, local, local.yaw);
 
     // ---- Render
+    if (this.photoCam) {
+      this.camera.position.set(...this.photoCam.pos);
+      this.camera.lookAt(...this.photoCam.target);
+      this.setFov(this.photoCam.fov ?? 80, 1);
+      this.hud.show(false);
+    }
     this.renderer.clear();
     this.renderer.render(this.scene, this.camera);
-    if (local.alive && this.state !== 'ended') {
+    if (local.alive && this.state !== 'ended' && !this.photoCam) {
       this.vm.update(dt, local, this.input.dx, this.input.dy);
       this.vm.render(this.renderer, this.camera.aspect);
     }
@@ -915,6 +923,10 @@ export class Game {
       }
     }
     if (aimed) this.aimedEnemy = { actor: aimed, until: match.time + 0.8 };
+    if (this.photoCam) {
+      for (const ch of this.chars.values()) ch.showName(false);
+      return;
+    }
     for (const a of match.actors) {
       if (a === local || !a.alive) continue;
       const friendly = match.teams && a.team === local.team;
@@ -980,7 +992,7 @@ export class Game {
       this.netSendTimer = 1 / 20;
       this.net.sendState(this.local);
     }
-    this.net?.interpolate();
+    this.net?.interpolate(dt);
   }
 
   /** Used by the network layer. */

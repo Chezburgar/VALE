@@ -319,7 +319,13 @@ export class MapBuilder {
   }
 
   prop(p: Prop): void {
-    this.props.push({ ...p, x: this.fx(p.x), z: this.fz(p.z), rotY: p.rotY !== undefined && this.flip ? p.rotY + Math.PI : p.rotY });
+    // Horizontal cylinders are placed by their start point; mirroring must
+    // move the start to the other end so the span lands in the same place.
+    let x = this.fx(p.x);
+    let z = this.fz(p.z);
+    if (this.flip && p.kind === 'cylinder' && p.axis === 'x') x -= p.h;
+    if (this.flip && p.kind === 'cylinder' && p.axis === 'z') z -= p.h;
+    this.props.push({ ...p, x, z, rotY: p.rotY !== undefined && this.flip ? p.rotY + Math.PI : p.rotY });
   }
 
   /** Spawn facing yaw (radians, 0 = looking toward -Z). Flipped spawns go to team 1. */

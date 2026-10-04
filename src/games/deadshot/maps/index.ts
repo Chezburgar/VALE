@@ -207,8 +207,8 @@ function refinery(): MapDef {
     // Main tanks around the plaza
     b.tank(-9, 9, 4.2, 9, 0xddd6c6);
     b.tank(-9, -9, 4.2, 9, 0xc9ced1);
-    b.prop({ kind: 'cylinder', x: -9, y: 7.2, z: 0, r: 0.35, h: 10, color: 0x8c6a4a, mat: 'metal', axis: 'z', segments: 10 });
-    b.prop({ kind: 'cylinder', x: 0, y: 7.8, z: 9, r: 0.3, h: 10, color: 0x7a7f84, mat: 'metal', axis: 'x', segments: 10 });
+    b.prop({ kind: 'cylinder', x: -9, y: 7.2, z: -4.9, r: 0.35, h: 9.8, color: 0x8c6a4a, mat: 'metal', axis: 'z', segments: 10 });
+    b.prop({ kind: 'cylinder', x: -4.9, y: 7.8, z: 9, r: 0.3, h: 9.8, color: 0x7a7f84, mat: 'metal', axis: 'x', segments: 10 });
     // Plaza cover
     b.box(0, 0, 3.2, 2.4, 1.1, 0.6, 'concrete', 0xb9b2a5);
     b.box(-2.8, 0, 0, 1.0, 1.4, 1.6, 'metal', 0x9c3b2c);
