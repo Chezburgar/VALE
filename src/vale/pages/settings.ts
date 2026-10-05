@@ -65,8 +65,8 @@ function seg<T extends string>(options: [T, string][], current: T, onPick: (v: T
 
 const PLATFORM_NAMES: Record<string, string> = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' };
 
-function desktopToggle(key: keyof DesktopPrefs): HTMLElement {
-  const el = h('button', { class: `toggle ${store.state.desktop[key] ? 'is-on' : ''}`, 'aria-label': key });
+function desktopToggle(key: keyof DesktopPrefs, label: string): HTMLElement {
+  const el = h('button', { class: `toggle ${store.state.desktop[key] ? 'is-on' : ''}`, 'aria-label': label, 'data-pref': key });
   el.addEventListener('click', () => {
     const next = !store.state.desktop[key];
     store.update((s) => {
@@ -153,7 +153,7 @@ function desktopSection(d: ValeDesktop): HTMLElement {
     h('h3', null, 'Desktop'),
     row('Host LAN games from this PC', 'Runs the Vale server inside the app so friends on your network can join your Deadshot lobbies.', lanToggle),
     info,
-    row('Launch games in fullscreen', 'Games take over the whole screen. F11 toggles fullscreen at any time.', desktopToggle('fullscreenGames')),
+    row('Launch games in fullscreen', 'Games take over the whole screen. F11 toggles fullscreen at any time.', desktopToggle('fullscreenGames', 'Launch games in fullscreen')),
     row('Version', '', h('span', { class: 'setting-value' }, `Vale ${d.version} · ${PLATFORM_NAMES[d.platform] ?? d.platform}`)),
   );
 }
