@@ -9,9 +9,10 @@ import { getMap } from './maps';
 import { FLAG_RADIUS, HP_RADIUS, Match, type MatchEvent, type MatchSettings } from './match';
 import { defaultProgress, Menu, type Progress } from './menu';
 import { NetClient } from './net';
-import { CharacterModel } from './render/character';
+import { createCharacter, type CharacterView } from './render/character';
 import { Effects } from './render/effects';
 import { buildGun } from './render/guns';
+import { createEnvironment, disposeModels, loadModels } from './render/models';
 import { ViewModel } from './render/viewmodel';
 import { buildWorld, type WorldVisuals } from './render/worldmesh';
 import { disposeTextures } from './render/textures';
@@ -47,7 +48,7 @@ export class Game {
   private worldMap: MapId | null = null;
   private effects: Effects;
   private vm = new ViewModel();
-  private chars = new Map<number, CharacterModel>();
+  private chars = new Map<number, CharacterView>();
   private audio: GameAudio;
   private input: Input;
   private hud: Hud;
@@ -163,6 +164,7 @@ export class Game {
     this.resizeObs.observe(this.root);
     this.resize();
     this.loadWorld(this.menuMap);
+    this.preloadModels();
     this.audio.menuMusic(true);
     this.last = performance.now();
     this.raf = requestAnimationFrame((t) => this.frame(t));
@@ -234,6 +236,25 @@ export class Game {
     this.renderer.toneMappingExposure = t.exposure;
     this.vm.setLighting(t.hemiSky, t.hemiGround, t.sun, t.sunIntensity);
     this.hud.setMap(map);
+  }
+
+  /** Fetches the GLB player and guns behind the loading screen. */
+  private preloadModels(): void {
+    createEnvironment(this.renderer);
+    this.menu.showLoading('Loading models', 0);
+    void loadModels((f) => {
+      if (!this.disposed) this.menu.showLoading('Loading models', f);
+    }).then(() => {
+      if (this.disposed) {
+        disposeModels();
+        return;
+      }
+      // Previews and the view model were built from the fallback guns.
+      this.gunCache.clear();
+      this.vm.resetGun();
+      this.menu.showLoading(null);
+      if (this.state === 'menu') this.menu.show(true);
+    });
   }
 
   private gunPreview(cls: ClassId, tier: Tier): string {
@@ -538,6 +559,7 @@ export class Game {
         break;
       }
       case 'kill': {
+        if (e.killer && e.killer !== e.victim) this.chars.get(e.victim.id)?.onKilled(e.killer.body.x, e.killer.body.z);
         const involves = e.killer === local || e.victim === local;
         this.hud.killfeed(e.killer?.name ?? null, this.colorFor(e.killer), e.victim.name, this.colorFor(e.victim), e.weapon, e.headshot, involves);
         if (e.killer === local && e.victim !== local) {
@@ -907,7 +929,7 @@ export class Game {
       if (a === local) continue;
       let ch = this.chars.get(a.id);
       if (!ch) {
-        ch = new CharacterModel(a);
+        ch = createCharacter(a);
         this.chars.set(a.id, ch);
         this.scene.add(ch.root);
       }
@@ -1022,6 +1044,7 @@ export class Game {
     this.vm.dispose();
     if (this.worldVis) this.worldVis.dispose();
     disposeTextures();
+    disposeModels();
     this.renderer.dispose();
     this.root.remove();
     delete (window as unknown as { __deadshot?: Game }).__deadshot;
