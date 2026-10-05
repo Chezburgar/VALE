@@ -1,27 +1,94 @@
 # Vale
 
-Vale is a PC game store and launcher that runs in the browser and installs as a desktop app. Its first game is **Deadshot.io — Vale Edition**, a from-scratch recreation of the Deadshot.io arena shooter that runs natively inside Vale. It is not an embed.
+Vale is a PC game store and launcher for Windows, macOS and Linux. It also runs in the browser. Its first game is **Deadshot.io — Vale Edition**, a from-scratch recreation of the Deadshot.io arena shooter that runs natively inside Vale. It is not an embed.
 
-## Quick start
+**Download:** [chezburgar.github.io/VALE](https://chezburgar.github.io/VALE/) · **Play in the browser:** [chezburgar.github.io/VALE/app](https://chezburgar.github.io/VALE/app/)
+
+| Platform | Installer |
+|---|---|
+| Windows 10/11 (64-bit) | [`Vale-Setup.exe`](https://github.com/Chezburgar/VALE/releases/latest/download/Vale-Setup.exe) |
+| macOS 12+ (Apple silicon and Intel) | [`Vale.dmg`](https://github.com/Chezburgar/VALE/releases/latest/download/Vale.dmg) |
+| Linux (64-bit) | [`Vale.AppImage`](https://github.com/Chezburgar/VALE/releases/latest/download/Vale.AppImage) · [`vale.deb`](https://github.com/Chezburgar/VALE/releases/latest/download/vale.deb) |
+
+The installers aren't code-signed yet. On Windows, click **More info → Run anyway** on the SmartScreen prompt. On macOS, right-click Vale and choose **Open** the first time (or run `xattr -cr /Applications/Vale.app`).
+
+## Quick start (development)
 
 ```bash
 npm install
 npm run dev          # launcher + game with hot reload at http://localhost:5173
+npm run desktop:dev  # the desktop app, loading the running dev server
+npm run desktop      # build, then run the desktop app from dist/
 ```
 
-To play over LAN, or to run Vale as one self-contained server:
+`npm run desktop:dev` loads `http://localhost:5173/`. Set `VALE_DEV_URL` to load a different dev URL.
 
-```bash
-npm run serve        # builds, then serves Vale and the multiplayer lobby on :8787
-```
+## LAN play
 
-The server prints its LAN address. Anyone on the network can open `http://<that-ip>:8787`. In Deadshot, go to **Play → Online · LAN**, connect, then host or join a lobby.
+One PC hosts the lobby server and everyone on the same network connects to it. There are two ways to host:
+
+- **Desktop app:** open **Settings → Desktop** and turn on **Host LAN games from this PC**. Vale starts its built-in server on port 8787 and lists the addresses friends should use. The setting is remembered, so hosting resumes the next time Vale opens.
+- **Command line:** `npm run serve` builds Vale, then serves it and the lobby server on port 8787. `npm start` serves an existing build, and `PORT=9000 npm start` picks another port.
+
+In Deadshot, go to **Play → Online · LAN** and connect to `ws://<host-ip>:8787/ws`. On the host PC itself, use `ws://localhost:8787/ws`. Friends without the app can open `http://<host-ip>:8787` in a browser.
+
+Browsers block `ws://` connections from https pages, so the GitHub Pages version can't join lobbies on other PCs. Use the desktop app, or the host's `http://` address.
 
 `npm run dev` and `npm run serve` can run together: the dev server proxies `/ws` to the game server on port 8787.
 
-### Install as a desktop app
+## Desktop app
 
-Vale is a PWA. In Chrome or Edge, use the install icon in the address bar, or **Settings → Vale app → Install app** inside Vale. Vale then opens in its own window with a desktop and Start-menu icon.
+The desktop app is an Electron shell around the same build as the web version:
+
+- `dist/` is served from a privileged `app://vale/` protocol rather than `file://`, so module scripts, `fetch` and the hash router behave exactly as they do on the web. Requests that resolve outside `dist/` are refused.
+- The renderer is sandboxed, with context isolation on, Node integration off, web security on and a strict CSP. The preload (`electron/preload.cjs`) exposes a small `window.valeDesktop` bridge: app version and platform, LAN server start/stop/status, opening external links, and fullscreen.
+- `window.open` is denied and http(s) links open in the system browser. Only one instance can run at a time. There is no menu bar. `F11` toggles fullscreen, and `Ctrl+Shift+I` opens DevTools in unpackaged builds only.
+- The window uses Vale's 60 px top bar as its title bar. The window controls are overlaid on the right on Windows and Linux, and the traffic lights are inset on the left on macOS.
+- The LAN server (`server/lan.js`) runs inside the app, serving `dist/` straight from the app archive.
+- Games launch in fullscreen by default. Turn this off under **Settings → Desktop**.
+
+### Building installers locally
+
+```bash
+npm run dist         # installers for the current OS, written to release/
+npm run dist:win     # Vale-Setup.exe (NSIS, needs Windows or Wine)
+npm run dist:mac     # Vale.dmg (universal; needs macOS)
+npm run dist:linux   # Vale.AppImage and vale.deb
+npx electron-builder --linux --dir   # unpacked app in release/linux-unpacked, quickest to test
+```
+
+The packaging config is in the `build` field of `package.json`. Artifact names don't include the version, so `releases/latest/download/<name>` links always point to the newest build. The Windows installer is assisted: you can choose the install folder, and it creates desktop and Start-menu shortcuts. Icons and NSIS artwork live in `build/`. To regenerate them from `public/` art (needs Python with Pillow):
+
+```bash
+python3 build/make-resources.py
+```
+
+### Releases and GitHub Pages
+
+`.github/workflows/desktop.yml` runs on every push to `claude/eloquent-pasteur-145due` (except docs-only changes), on `v*` tags, and when triggered manually:
+
+1. **build:** Windows, macOS and Linux runners each run `npm ci`, `npm run build` and `electron-builder`, then upload the installers as workflow artifacts.
+2. **release:** creates or updates the GitHub Release `v<package.json version>` (or the pushed tag), marks it as latest, and replaces its installers.
+3. **pages:** runs `npm run site` and publishes `site-dist/` to the `gh-pages` branch. The download page is at the root and the browser version of Vale is under `app/`.
+
+To ship a new version, bump `version` in `package.json` and push, or push a `v1.2.3` tag.
+
+**One-time setup:** in the repository on GitHub, open **Settings → Pages → Build and deployment**. Set **Source** to *Deploy from a branch*, then choose `gh-pages` and `/ (root)`. The site goes live at https://chezburgar.github.io/VALE/ after the first successful run.
+
+### Download page
+
+The page lives in `site/` (`index.html`, `style.css`, `main.js`). It detects the visitor's OS to highlight the right installer, and reads the latest release's version and file sizes from the GitHub API. To preview it locally:
+
+```bash
+npm run site                         # build the web app + assemble site-dist/
+python3 -m http.server -d site-dist 8080
+```
+
+The web build uses a relative base (`./`), so the same `dist/` works at a subpath like `/VALE/app/`, from the Vale server, and inside the desktop app.
+
+### Install as a PWA
+
+In Chrome or Edge, the browser version can also be installed as a PWA. Use the install icon in the address bar, or go to **Settings → Vale app → Install app** inside Vale.
 
 ## What's in Vale
 
@@ -70,9 +137,14 @@ src/games/deadshot/            the game (lazy-loaded chunk)
   render/                      world meshes, sky, characters, guns, view model, effects
   hud.ts, menu.ts, audio.ts    UI and sound
   net.ts                       LAN client
-server/index.js                static server + WebSocket lobbies
-public/sw.js                   offline support for installed games
+server/lan.js                  static server + WebSocket lobbies (shared by CLI and desktop app)
+server/index.js                `npm start` CLI
+electron/                      desktop app: main process + sandboxed preload
+build/                         app icons and installer artwork (+ make-resources.py)
+site/                          GitHub Pages download page (+ build.mjs, which assembles site-dist/)
+public/sw.js                   offline support for installed games (web only)
 scripts/                       headless checks (see below)
+.github/workflows/desktop.yml  installers, GitHub Release and Pages deploy
 ```
 
 ### Adding a game to Vale

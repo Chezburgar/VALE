@@ -1,0 +1,165 @@
+# Builds the Vale desktop installers on Windows, macOS and Linux, publishes them
+# as the GitHub Release v<package.json version> (marked latest, so the
+# releases/latest/download/<name> links on the download page always work), then
+# deploys the download page + browser version of Vale to GitHub Pages.
+#
+# One-time setup: Settings -> Pages -> Build and deployment -> Source:
+# "Deploy from a branch", branch "gh-pages", folder "/ (root)".
+
+name: Desktop
+
+on:
+  push:
+    branches: [claude/eloquent-pasteur-145due]
+    tags: ['v*']
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            platform: --win
+            files: release/Vale-Setup.exe
+          - os: macos-latest
+            name: macOS
+            platform: --mac
+            files: release/Vale.dmg
+          - os: ubuntu-latest
+            name: Linux
+            platform: --linux
+            files: |
+              release/Vale.AppImage
+              release/vale.deb
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Vale
+        run: npm run build
+
+      # Targets, artifact names and icons come from the "build" field in package.json.
+      - name: Package installers
+        run: npx electron-builder ${{ matrix.platform }} --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vale-${{ matrix.name }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish release
+    needs: build
+    if: github.ref == 'refs/heads/claude/eloquent-pasteur-145due' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve release tag
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tag="$GITHUB_REF_NAME"
+          else
+            tag="v$(node -p "require('./package.json').version")"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Publishing $tag"
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+
+      - name: List installers
+        run: ls -la installers
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Vale ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          make_latest: 'true'
+          overwrite_files: true
+          fail_on_unmatched_files: true
+          body: |
+            Vale desktop app for Windows, macOS and Linux. Download page: https://chezburgar.github.io/VALE/
+
+            | Platform | File |
+            | --- | --- |
+            | Windows 10/11 (64-bit) | `Vale-Setup.exe` |
+            | macOS 12+ (Apple silicon & Intel) | `Vale.dmg` |
+            | Linux (64-bit) | `Vale.AppImage` or `vale.deb` |
+
+            The builds are not code-signed yet: on Windows choose **More info -> Run anyway**; on macOS right-click Vale -> **Open** the first time.
+
+            Built from ${{ github.sha }}.
+          files: |
+            installers/Vale-Setup.exe
+            installers/Vale.dmg
+            installers/Vale.AppImage
+            installers/vale.deb
+
+  pages:
+    name: Publish download site
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Builds the web app and assembles site-dist/: download page at the root,
+      # Vale itself under app/.
+      - name: Build site
+        run: npm run site
+
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site-dist
+          publish_branch: gh-pages
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'Deploy Vale site'
