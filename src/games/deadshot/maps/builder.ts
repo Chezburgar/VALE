@@ -12,7 +12,25 @@ export interface Spawn extends V3 {
   team: 0 | 1;
 }
 
-export type PropKind = 'cylinder' | 'cone' | 'sphere' | 'box' | 'prism';
+/**
+ * Visual mesh kinds. Sizes: box/ellipsoid/rock/blob use r = width (X), h = height,
+ * d = depth (Z) with the pivot at the bottom center. cylinder/cone: r = radius,
+ * h = height (cylinder d = top radius ratio; axis 'x'/'z' lies down starting at
+ * x/z). sphere: r = radius around (x, y, z). prism: gable roof, r = length,
+ * h = ridge height, d = depth. extrude: `profile` ([z, y] points) swept r meters
+ * along local X, centered on x/z. mountain: distant peak, r = base radius.
+ * decal/ribbon/panel/sign/glow are textured quads/sprites (see the builder methods).
+ */
+export type PropKind = 'cylinder' | 'cone' | 'sphere' | 'box' | 'prism' | 'ellipsoid' | 'rock' | 'blob' | 'extrude' | 'mountain' | 'decal' | 'ribbon' | 'panel' | 'sign' | 'glow';
+
+/** Flat ground decals (alpha-blended, skipped on low quality). 'light' is an additive light pool. */
+export type DecalId = 'puddle' | 'oil' | 'crack' | 'dirt' | 'leaves' | 'sand' | 'manhole' | 'grate' | 'arrow' | 'hazard' | 'scorch' | 'moss' | 'gravel' | 'snowdrift' | 'stain' | 'light';
+/** Strips that tile along a polyline. */
+export type RibbonId = 'path' | 'snowpath' | 'line' | 'dashed' | 'tracks' | 'gravel' | 'road' | 'curb';
+/** Upright textured quads. 'chain' is cut-out; 'windowLit' glows. */
+export type PanelId = 'chain' | 'window' | 'windowLit' | 'vent' | 'door' | 'shutter' | 'fan' | 'poster';
+/** Instanced ground clutter. */
+export type ScatterKind = 'grass' | 'tallgrass' | 'flowers' | 'fern' | 'pebble' | 'debris' | 'leaves' | 'twig' | 'weed' | 'snowclump' | 'mushroom' | 'reed';
 
 /** Visual-only mesh (colliders for props are added separately as boxes). */
 export interface Prop {
@@ -20,18 +38,52 @@ export interface Prop {
   x: number;
   y: number;
   z: number;
-  /** cylinder/cone/sphere radius, or box width */
+  /** radius (cylinder/cone/sphere), width (box-like), length (extrude/prism/ribbon width) */
   r: number;
-  /** height (or box height) */
+  /** height */
   h: number;
-  /** box depth / cylinder top radius ratio */
+  /** depth (box-like) / cylinder top radius ratio */
   d?: number;
   color: number;
   mat?: MatId;
   axis?: 'x' | 'y' | 'z';
+  /** Rotations in radians, applied in YXZ order about the pivot. */
   rotY?: number;
+  rotX?: number;
+  rotZ?: number;
   segments?: number;
   emissive?: number;
+  /** Shape variation for rock/blob/cone/mountain. */
+  seed?: number;
+  /** Cone: alternate the skirt radius by this fraction (star-shaped pine layers). */
+  jag?: number;
+  /** Extrude cross-section ([z, y] points, counter-clockwise). */
+  profile?: [number, number][];
+  /** Texture cell for decal/ribbon/panel. */
+  tex?: DecalId | RibbonId | PanelId;
+  /** Ribbon polyline [x, z]. */
+  pts?: [number, number][];
+  /** Sign text and text color (the prop color is the background). */
+  text?: string;
+  fg?: number;
+  /** Panel: render on top of the surface it is placed on (horizontal panels). */
+  flat?: boolean;
+  /** Mountain snow cap color. */
+  cap?: number;
+  /** Contact darkening toward the base (default on for grounded solids). */
+  ao?: boolean;
+}
+
+/** One instance of a scatter set (rendered with InstancedMesh). */
+export interface Instance {
+  kind: ScatterKind;
+  x: number;
+  y: number;
+  z: number;
+  /** uniform scale */
+  s: number;
+  rot: number;
+  color: number;
 }
 
 export interface Theme {
@@ -50,12 +102,26 @@ export interface Theme {
   particles: 'snow' | 'dust' | 'pollen' | null;
   exposure: number;
   ambience: 'wind' | 'industrial' | 'forest' | 'snow';
+  /** Procedural cloud layer: cover 0..1, colors of lit/shaded sides, uv scale, drift speed. */
+  clouds?: { cover: number; color?: number; shade?: number; scale?: number; speed?: number };
+  /** Brightness of lamps, lit windows and glows (dusk/night maps > 1). */
+  glow?: number;
+  /** Animated water colors. */
+  water?: { shallow: number; deep: number };
+  /**
+   * Ground ring from the map edge to the horizon (default: the largest ground box).
+   * `hole` overrides the cut-out [minX, minZ, maxX, maxZ] (default: the map bounds),
+   * e.g. when visual-only ground extends past the bounds.
+   */
+  backdrop?: { mat: MatId; color: number; patch?: number; y?: number; hole?: [number, number, number, number] };
 }
 
 export interface MapDef {
   id: MapId;
   boxes: Box[];
   props: Prop[];
+  /** Instanced ground clutter (grass, pebbles, ...); visual only. */
+  instances: Instance[];
   spawns: Spawn[];
   flags: V3[];
   hardpoints: V3[];
@@ -87,6 +153,7 @@ export function rng(seed: number): () => number {
 export class MapBuilder {
   boxes: Box[] = [];
   props: Prop[] = [];
+  instances: Instance[] = [];
   spawns: Spawn[] = [];
   flip = false;
 
@@ -250,6 +317,8 @@ export class MapBuilder {
     windows?: { side: Dir; at: number; w?: number; bottom?: number; top?: number }[];
     roof?: 'flat' | 'access' | 'none' | 'pitched';
     roofColor?: number;
+    /** Visual material of a pitched roof (default 'wood'). */
+    roofMat?: MatId;
     parapet?: number;
   }): void {
     const t = o.t ?? 0.35;
@@ -279,7 +348,7 @@ export class MapBuilder {
       const cz = (z0 + z1) / 2;
       const w = x1 - x0 + 0.8;
       const d = z1 - z0 + 0.8;
-      this.prop({ kind: 'prism', x: cx, y: y + o.h, z: cz, r: w, h: Math.min(w, d) * 0.42, d, color: roofC, mat: 'wood', axis: w >= d ? 'x' : 'z' });
+      this.prop({ kind: 'prism', x: cx, y: y + o.h, z: cz, r: w >= d ? w : d, h: Math.min(w, d) * 0.42, d: w >= d ? d : w, color: roofC, mat: o.roofMat ?? 'wood', axis: w >= d ? 'x' : 'z' });
     } else if (roof === 'access') {
       // Stairs along the inside of the west wall climbing north, with a hatch above the top steps.
       // The hatch is wider than the stairs so a 1m nav column always has headroom.
@@ -323,9 +392,114 @@ export class MapBuilder {
     // move the start to the other end so the span lands in the same place.
     let x = this.fx(p.x);
     let z = this.fz(p.z);
-    if (this.flip && p.kind === 'cylinder' && p.axis === 'x') x -= p.h;
-    if (this.flip && p.kind === 'cylinder' && p.axis === 'z') z -= p.h;
-    this.props.push({ ...p, x, z, rotY: p.rotY !== undefined && this.flip ? p.rotY + Math.PI : p.rotY });
+    const lying = p.kind === 'cylinder' && (p.axis === 'x' || p.axis === 'z');
+    if (this.flip && lying && p.axis === 'x') x -= p.h;
+    if (this.flip && lying && p.axis === 'z') z -= p.h;
+    // Everything else rotates 180° with the half it belongs to (YXZ order keeps tilts intact).
+    let rotY = p.rotY;
+    if (this.flip) rotY = lying ? (p.rotY !== undefined ? p.rotY + Math.PI : undefined) : (p.rotY ?? 0) + Math.PI;
+    const pts = p.pts && this.flip ? p.pts.map(([px, pz]) => [-px, -pz] as [number, number]) : p.pts;
+    this.props.push({ ...p, x, z, rotY, pts });
+  }
+
+  /**
+   * Flat ground decal centered at (x, z), w along local X, d along local Z (texture
+   * top / arrow tip toward local +Z, rotated by `rot`). `y` defaults to the
+   * ground-level surface under the center (tops at or below 0.5 m).
+   */
+  decal(tex: DecalId, x: number, z: number, w: number, d: number, o: { rot?: number; y?: number; color?: number } = {}): void {
+    this.prop({ kind: 'decal', tex, x, y: o.y ?? this.groundAt(x, z, 0.5).y, z, r: w, h: 0, d, rotY: o.rot ?? 0, color: o.color ?? 0xffffff });
+  }
+
+  /**
+   * Flat strip of `width` meters following the polyline `pts` ([x, z]); the texture
+   * tiles along it. `y` defaults to the highest ground-level surface along the line.
+   */
+  ribbon(tex: RibbonId, pts: [number, number][], width: number, o: { y?: number; color?: number } = {}): void {
+    let y = o.y;
+    if (y === undefined) {
+      y = -Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        const [ax, az] = pts[i];
+        const [bx, bz] = pts[Math.min(pts.length - 1, i + 1)];
+        const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az)));
+        for (let k = 0; k <= n; k++) y = Math.max(y, this.groundAt(ax + ((bx - ax) * k) / n, az + ((bz - az) * k) / n, 0.5).y);
+      }
+    }
+    this.prop({ kind: 'ribbon', tex, x: 0, y, z: 0, r: width, h: 0, pts, color: o.color ?? 0xffffff });
+  }
+
+  /**
+   * Upright textured quad (window, door, vent, chain-link ...) with its bottom
+   * center at (x, y, z), facing local +Z rotated by `rot`. `flat` lays it face-up.
+   */
+  panel(tex: PanelId, x: number, y: number, z: number, w: number, h: number, rot = 0, color = 0xffffff, flat = false): void {
+    this.prop({ kind: 'panel', tex, x, y, z, r: w, h, rotY: rot, color, flat });
+  }
+
+  /** Canvas-text sign face (bottom center at x, y, z), facing local +Z rotated by `rot`. */
+  sign(text: string, x: number, y: number, z: number, w: number, h: number, rot = 0, o: { bg?: number; fg?: number } = {}): void {
+    this.prop({ kind: 'sign', text, x, y, z, r: w, h, rotY: rot, color: o.bg ?? 0x1f4f7a, fg: o.fg ?? 0xffffff });
+  }
+
+  /** Additive halo sprite of `size` meters (lamps, flares). Brightness follows theme.glow. */
+  glow(x: number, y: number, z: number, size: number, color: number): void {
+    this.prop({ kind: 'glow', x, y, z, r: size, h: 0, color });
+  }
+
+  /** One instanced clutter item. `y` defaults to the ground under the point. */
+  scatter(kind: ScatterKind, x: number, z: number, o: { y?: number; s?: number; rot?: number; color?: number } = {}): void {
+    const y = o.y ?? this.groundAt(x, z).y;
+    this.instances.push({ kind, x: this.fx(x), y, z: this.fz(z), s: o.s ?? 1, rot: (o.rot ?? 0) + (this.flip ? Math.PI : 0), color: o.color ?? 0xffffff });
+  }
+
+  /**
+   * Seeded scatter of `count` items over a rectangle. Points are dropped onto the
+   * highest surface below `maxY` and kept only when that surface's material is in
+   * `on` (default: any ground-level surface), so clutter never lands inside props
+   * or on roofs. `avoid` rectangles [x0, z0, x1, z1] are skipped.
+   */
+  scatterArea(kind: ScatterKind, x0: number, z0: number, x1: number, z1: number, count: number, o: { seed?: number; color?: number; colorVar?: number; s?: [number, number]; on?: MatId[]; maxY?: number; avoid?: [number, number, number, number][] } = {}): void {
+    const rand = rng(o.seed ?? 1);
+    const [s0, s1] = o.s ?? [0.75, 1.3];
+    const base = o.color ?? 0xffffff;
+    const cv = o.colorVar ?? 0.15;
+    for (let i = 0; i < count; i++) {
+      const x = x0 + rand() * (x1 - x0);
+      const z = z0 + rand() * (z1 - z0);
+      const s = s0 + rand() * (s1 - s0);
+      const rot = rand() * Math.PI * 2;
+      const k = 1 + (rand() - 0.5) * 2 * cv;
+      if (o.avoid?.some(([a, c, bb, d]) => x > Math.min(a, bb) && x < Math.max(a, bb) && z > Math.min(c, d) && z < Math.max(c, d))) continue;
+      const g = this.groundAt(x, z, o.maxY ?? 0.6);
+      if (!g.mat || (o.on && !o.on.includes(g.mat))) continue;
+      this.scatter(kind, x, z, { y: g.y, s, rot, color: scaleColor(base, k) });
+    }
+  }
+
+  /**
+   * Top of the highest visible or collidable box under (x, z) (authoring
+   * coordinates, so it works inside `symmetric`) whose top is at or below `maxY`.
+   * Returns mat = null when something taller than `maxY` stands on the point.
+   */
+  groundAt(x: number, z: number, maxY = 50): { y: number; mat: MatId | null } {
+    const X = this.fx(x);
+    const Z = this.fz(z);
+    let y = -Infinity;
+    let mat: MatId | null = null;
+    let blocked = false;
+    for (const b of this.boxes) {
+      if (!(b.collide || b.visible) || X < b.minX || X > b.maxX || Z < b.minZ || Z > b.maxZ || b.maxY - b.minY > 30) continue;
+      if (b.maxY > maxY + 1e-6) {
+        if (b.minY < maxY + 1.8 && b.collide) blocked = true;
+        continue;
+      }
+      if (b.maxY > y) {
+        y = b.maxY;
+        mat = b.mat;
+      }
+    }
+    return { y: Number.isFinite(y) ? y : 0, mat: blocked ? null : mat };
   }
 
   /** Spawn facing yaw (radians, 0 = looking toward -Z). Flipped spawns go to team 1. */
@@ -359,4 +533,11 @@ export class MapBuilder {
 /** Yaw that faces from (x, z) toward (tx, tz). Yaw 0 looks toward -Z. */
 export function yawTo(x: number, z: number, tx: number, tz: number): number {
   return Math.atan2(-(tx - x), -(tz - z));
+}
+
+function scaleColor(c: number, k: number): number {
+  const r = Math.min(255, Math.round(((c >> 16) & 255) * k));
+  const g = Math.min(255, Math.round(((c >> 8) & 255) * k));
+  const b = Math.min(255, Math.round((c & 255) * k));
+  return (r << 16) | (g << 8) | b;
 }

@@ -19,6 +19,11 @@ export type MatId =
   | 'water'
   | 'glass'
   | 'stripe'
+  | 'steel'
+  | 'roof'
+  | 'gravel'
+  | 'sand'
+  | 'tile'
   | 'plain';
 
 export interface Box {
@@ -34,6 +39,11 @@ export interface Box {
   visible: boolean;
   /** Bullets pass through (e.g. foliage, fences). */
   soft?: boolean;
+  /** Visual only: secondary color blended in large soft patches across the top face. */
+  patch?: number;
+  /** Visual only: material and color for the vertical faces (e.g. dirt banks under grass). */
+  sideMat?: MatId;
+  sideColor?: number;
 }
 
 export interface RayHit {

@@ -33,7 +33,15 @@ for (const id of MAP_ORDER) {
   // elevated spots reachable?
   let high = 0;
   for (const n of nav.mainNodes) if (nav.nodeY[n] > 3) high++;
-  console.log(`${id}: boxes=${m.boxes.length} props=${m.props.length} nodes=${nav.count} main=${nav.mainNodes.length} highMain=${high} edges=${nav.edgeTo.length} world=${(t1-t0).toFixed(1)}ms nav=${(t2-t1).toFixed(1)}ms path=${path.length} (${(t4-t3).toFixed(2)}ms)`);
+  // Render budget (see maps/props.ts): merged props, instanced clutter, sane data.
+  if (m.props.length > 8000) problems.push(`props=${m.props.length} exceeds the 8000 budget`);
+  if (m.instances.length > 15000) problems.push(`instances=${m.instances.length} exceeds the 15000 budget`);
+  const bad = m.props.find((p) => ![p.x, p.y, p.z, p.r, p.h].every(Number.isFinite)) ?? m.instances.find((p) => ![p.x, p.y, p.z, p.s].every(Number.isFinite));
+  if (bad) problems.push(`non-finite placement ${JSON.stringify(bad).slice(0, 120)}`);
+  const kinds = new Map<string, number>();
+  for (const p of m.props) kinds.set(p.kind, (kinds.get(p.kind) ?? 0) + 1);
+  console.log(`${id}: boxes=${m.boxes.length} colliders=${w.colliders.length} props=${m.props.length} instances=${m.instances.length} nodes=${nav.count} main=${nav.mainNodes.length} highMain=${high} edges=${nav.edgeTo.length} world=${(t1-t0).toFixed(1)}ms nav=${(t2-t1).toFixed(1)}ms path=${path.length} (${(t4-t3).toFixed(2)}ms)`);
+  console.log(`   props: ${[...kinds].map(([k, n]) => `${k}=${n}`).join(' ')}`);
   for (const p of problems) console.log('   !', p);
   if (problems.length) process.exitCode = 1;
 }
