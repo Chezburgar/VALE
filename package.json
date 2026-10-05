@@ -1,9 +1,20 @@
 {
   "name": "vale",
+  "productName": "Vale",
   "private": true,
-  "version": "0.1.0",
-  "description": "Vale - a PC game store & launcher",
+  "version": "1.0.0",
+  "description": "Vale - a PC game store and launcher, home of Deadshot.io Vale Edition",
+  "author": {
+    "name": "Chezburgar",
+    "url": "https://github.com/Chezburgar"
+  },
+  "homepage": "https://chezburgar.github.io/VALE/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Chezburgar/VALE.git"
+  },
   "type": "module",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -12,7 +23,15 @@
     "start": "node server/index.js",
     "serve": "npm run build && node server/index.js",
     "check:maps": "rolldown scripts/validate-maps.ts -f esm -o .cache/validate-maps.mjs && node .cache/validate-maps.mjs",
-    "sim": "rolldown scripts/sim.ts -f esm -o .cache/sim.mjs && node .cache/sim.mjs"
+    "sim": "rolldown scripts/sim.ts -f esm -o .cache/sim.mjs && node .cache/sim.mjs",
+    "desktop": "npm run build && electron .",
+    "desktop:dev": "electron . --dev",
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:win": "npm run build && electron-builder --win --publish never",
+    "dist:mac": "npm run build && electron-builder --mac --publish never",
+    "dist:linux": "npm run build && electron-builder --linux --publish never",
+    "site": "npm run build && node site/build.mjs",
+    "site:assemble": "node site/build.mjs"
   },
   "license": "UNLICENSED",
   "dependencies": {
@@ -29,5 +48,93 @@
     "three": "^0.186.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.2"
+  },
+  "build": {
+    "appId": "app.vale.launcher",
+    "productName": "Vale",
+    "copyright": "Copyright © 2026 Chezburgar",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "server/lan.js",
+      "package.json"
+    ],
+    "asar": true,
+    "npmRebuild": false,
+    "electronLanguages": [
+      "en-US"
+    ],
+    "publish": null,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "legalTrademarks": "Vale"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Vale",
+      "uninstallDisplayName": "Vale",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "installerHeader": "build/installerHeader.bmp",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/uninstallerSidebar.bmp",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Vale-Setup.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.games",
+      "icon": "build/icon.png",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "title": "Vale",
+      "artifactName": "Vale.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Game",
+      "icon": "build/icon.png",
+      "executableName": "vale",
+      "synopsis": "Game store and launcher",
+      "maintainer": "Chezburgar <chezburgar@users.noreply.github.com>"
+    },
+    "appImage": {
+      "artifactName": "Vale.${ext}"
+    },
+    "deb": {
+      "artifactName": "vale.${ext}"
+    }
   }
 }

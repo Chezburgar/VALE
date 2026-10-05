@@ -365,6 +365,9 @@ export function startValeServer({ port = DEFAULT_PORT, distDir, logger = { info:
   }
 
   const wss = new WebSocketServer({ server: http, path: '/ws', maxPayload: 16 * 1024 });
+  // ws re-emits the HTTP server's errors (e.g. EADDRINUSE); they are handled on
+  // the server itself below, and an unhandled 'error' here would throw.
+  wss.on('error', () => {});
 
   wss.on('connection', (ws) => {
     /** @type {Client} */
