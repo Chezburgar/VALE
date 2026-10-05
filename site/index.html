@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#05090b" />
+    <title>Vale — Download the game launcher</title>
+    <meta name="description" content="Vale is a free game store and launcher for Windows, macOS and Linux. Home of Deadshot.io — Vale Edition. Host LAN matches from your own PC." />
+    <meta property="og:title" content="Vale — game store &amp; launcher" />
+    <meta property="og:description" content="Download Vale for Windows, macOS and Linux and play Deadshot.io — Vale Edition." />
+    <meta property="og:image" content="https://chezburgar.github.io/VALE/media/deadshot/hero.jpg" />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png" />
+    <link rel="apple-touch-icon" href="icons/icon-180.png" />
+    <link rel="preload" href="fonts/rajdhani-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-os="unknown">
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="i-windows" viewBox="0 0 24 24"><path fill="currentColor" d="M3 5.1 10.4 4v7.3H3V5.1Zm0 13.8 7.4 1.1v-7.2H3v6.1Zm8.2 1.2L21 21.5v-8.7h-9.8v7.3Zm0-16.2v7.4H21V2.5l-9.8 1.4Z" /></symbol>
+      <symbol id="i-apple" viewBox="0 0 24 24"><path fill="currentColor" d="M16.4 12.6c0-2.5 2-3.7 2.1-3.8-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.1 2.5-1.8 3.1-.5 7.6 1.3 10.1.8 1.2 1.8 2.6 3.1 2.5 1.3-.1 1.7-.8 3.3-.8 1.5 0 1.9.8 3.3.8 1.4 0 2.2-1.2 3-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-3.9ZM14 5.2c.7-.8 1.1-1.9 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4Z" /></symbol>
+      <symbol id="i-linux" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c-2.2 0-3.6 1.8-3.6 4.4 0 1.3.2 2.2-.6 3.5-1 1.6-2.6 3.4-2.9 5.9-.1 1 .1 1.8.5 2.4-.8.4-1.9.6-1.9 1.6 0 1.1 1.8 1.3 3.5 1.9 1.1.4 2 .6 2.7-.1.6.3 1.4.4 2.3.4s1.7-.1 2.3-.4c.7.7 1.6.5 2.7.1 1.7-.6 3.5-.8 3.5-1.9 0-1-1.1-1.2-1.9-1.6.4-.6.6-1.4.5-2.4-.3-2.5-1.9-4.3-2.9-5.9-.8-1.3-.6-2.2-.6-3.5C15.6 3.8 14.2 2 12 2Zm-1.6 3.6c.5 0 .8.6.8 1.3 0 .3-.1.6-.2.8l-.6-.2c.1-.1.1-.3.1-.5 0-.4-.1-.6-.2-.6s-.3.2-.3.6v.2l-.6-.2v-.2c.1-.7.5-1.2 1-1.2Zm3.2 0c.5 0 1 .6 1 1.3 0 .2 0 .3-.1.5l-.5-.1v-.3c0-.4-.2-.7-.4-.7s-.4.3-.4.7v.2l-.5-.2c0-.7.4-1.4.9-1.4ZM12 8c.9 0 2 .6 2 1s-1.1 1.1-2 1.1-2-.7-2-1.1 1.1-1 2-1Zm-2.4 2.4c.7.5 1.6 1 2.4 1s1.7-.5 2.4-1c.6 1.2 1.4 2.7 1.4 4.6 0 2.4-1.7 4-3.8 4s-3.8-1.6-3.8-4c0-1.9.8-3.4 1.4-4.6Z" /></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0 5-5m-5 5-5-5M4 20h16" /></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5Z" /></symbol>
+      <symbol id="i-wifi" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M2.5 8.8a14 14 0 0 1 19 0M5.8 12.3a9 9 0 0 1 12.4 0M9.1 15.7a4.3 4.3 0 0 1 5.8 0" /><circle cx="12" cy="19.2" r="1.4" fill="currentColor" /></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3 4.5 6v5.5c0 4.6 3.1 8.3 7.5 9.5 4.4-1.2 7.5-4.9 7.5-9.5V6L12 3Z" /><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m8.8 12 2.2 2.2 4.2-4.4" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2Z" /></symbol>
+      <symbol id="i-trophy" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 4h8v5a4 4 0 0 1-8 0V4Zm0 2H4.5v1.5A3.5 3.5 0 0 0 8 11m8-5h3.5v1.5A3.5 3.5 0 0 1 16 11m-4 2v4m-4 3h8m-6.5 0 .5-3h4l.5 3" /></symbol>
+      <symbol id="i-library" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4h4v16H4zM10 4h4v16h-4zM16.5 4.8l3.8-1 3.2 15.5-3.8.9z" transform="translate(-1 0)" /></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6" /></symbol>
+    </svg>
+
+    <header class="topbar">
+      <div class="wrap topbar-inner">
+        <a class="brand" href="#top" aria-label="Vale home"><img src="brand/vale-logo.png" alt="" width="34" height="28" /><span>VALE</span></a>
+        <nav class="nav" aria-label="Sections">
+          <a href="#download">Download</a>
+          <a href="#deadshot">Deadshot.io</a>
+          <a href="#lan">LAN play</a>
+          <a href="#help">Help</a>
+        </nav>
+        <a class="btn btn-ghost btn-sm" href="./app/"><svg><use href="#i-play" /></svg><span>Play in browser</span></a>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero-floor" aria-hidden="true"></div>
+        <div class="wrap hero-inner">
+          <div class="hero-copy">
+            <p class="eyebrow"><span class="eyebrow-line"></span>Game store &amp; launcher</p>
+            <h1>Your games.<br /><span class="accent">One launcher.</span></h1>
+            <p class="lead">Vale is a free game store and launcher for Windows, macOS and Linux. Install games, chase achievements and host LAN matches from your own PC — starting with <strong>Deadshot.io — Vale Edition</strong>.</p>
+            <div class="cta-row">
+              <a class="btn btn-primary btn-lg" id="primary-download" href="#download" data-os-target="auto">
+                <svg class="os-icon"><use href="#i-download" /></svg>
+                <span class="btn-stack"><span class="btn-label">Download Vale</span><span class="btn-sub">Windows · macOS · Linux</span></span>
+              </a>
+              <a class="btn btn-outline btn-lg" href="./app/"><svg><use href="#i-play" /></svg><span>Play in your browser</span></a>
+            </div>
+            <p class="hero-meta">
+              <span class="pill">v<span data-version>%VERSION%</span></span>
+              <span>Free</span><span class="sep"></span><span id="other-platforms"><a href="#download">All platforms</a></span>
+            </p>
+          </div>
+          <div class="hero-art">
+            <div class="hero-art-glow" aria-hidden="true"></div>
+            <img src="brand/vale-splash.png" alt="Vale" width="367" height="368" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Launcher preview -->
+      <section class="showcase" aria-label="The Vale launcher">
+        <div class="wrap">
+          <figure class="window">
+            <img src="media/launcher.jpg" alt="The Vale desktop app showing the store page with Deadshot.io" width="1440" height="900" loading="lazy" />
+          </figure>
+          <div class="perks">
+            <div class="perk">
+              <span class="perk-icon"><svg><use href="#i-library" /></svg></span>
+              <div><h3>Store &amp; library</h3><p>Browse, install and launch games in one place. Installed games start instantly and play offline.</p></div>
+            </div>
+            <div class="perk">
+              <span class="perk-icon"><svg><use href="#i-trophy" /></svg></span>
+              <div><h3>Achievements &amp; stats</h3><p>Career stats, playtime and achievements for every game, with an in-game overlay on <b>Shift + Tab</b>.</p></div>
+            </div>
+            <div class="perk">
+              <span class="perk-icon"><svg><use href="#i-wifi" /></svg></span>
+              <div><h3>LAN hosting built in</h3><p>Flip one switch in Settings and your PC hosts Deadshot lobbies for everyone on your network.</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Downloads -->
+      <section class="section" id="download">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="eyebrow"><span class="eyebrow-line"></span>Download</p>
+            <h2>Get Vale for your PC</h2>
+            <p class="section-lead">One app, every platform. Installers are built automatically from the latest release on GitHub.</p>
+          </div>
+          <div class="dl-grid">
+            <article class="dl-card" data-os="windows">
+              <span class="dl-badge">Your system</span>
+              <div class="dl-icon"><svg><use href="#i-windows" /></svg></div>
+              <h3>Windows</h3>
+              <p class="dl-req">Windows 10 or 11 · 64-bit</p>
+              <a class="btn btn-primary dl-btn" href="https://github.com/Chezburgar/VALE/releases/latest/download/Vale-Setup.exe" data-asset="Vale-Setup.exe">
+                <svg><use href="#i-download" /></svg><span>Download installer</span>
+              </a>
+              <p class="dl-file"><code>Vale-Setup.exe</code><span class="dl-size" data-size-for="Vale-Setup.exe"></span></p>
+            </article>
+            <article class="dl-card" data-os="mac">
+              <span class="dl-badge">Your system</span>
+              <div class="dl-icon"><svg><use href="#i-apple" /></svg></div>
+              <h3>macOS</h3>
+              <p class="dl-req">macOS 12 or later · Apple silicon &amp; Intel</p>
+              <a class="btn btn-primary dl-btn" href="https://github.com/Chezburgar/VALE/releases/latest/download/Vale.dmg" data-asset="Vale.dmg">
+                <svg><use href="#i-download" /></svg><span>Download .dmg</span>
+              </a>
+              <p class="dl-file"><code>Vale.dmg</code><span class="dl-size" data-size-for="Vale.dmg"></span></p>
+            </article>
+            <article class="dl-card" data-os="linux">
+              <span class="dl-badge">Your system</span>
+              <div class="dl-icon"><svg><use href="#i-linux" /></svg></div>
+              <h3>Linux</h3>
+              <p class="dl-req">64-bit · AppImage or Debian/Ubuntu package</p>
+              <div class="dl-split">
+                <a class="btn btn-primary dl-btn" href="https://github.com/Chezburgar/VALE/releases/latest/download/Vale.AppImage" data-asset="Vale.AppImage">
+                  <svg><use href="#i-download" /></svg><span>AppImage</span>
+                </a>
+                <a class="btn btn-outline dl-btn" href="https://github.com/Chezburgar/VALE/releases/latest/download/vale.deb" data-asset="vale.deb">
+                  <svg><use href="#i-download" /></svg><span>.deb</span>
+                </a>
+              </div>
+              <p class="dl-file"><code>Vale.AppImage</code><span class="dl-size" data-size-for="Vale.AppImage"></span><span class="sep"></span><code>vale.deb</code><span class="dl-size" data-size-for="vale.deb"></span></p>
+            </article>
+          </div>
+          <div class="dl-foot">
+            <p><svg><use href="#i-shield" /></svg>The builds aren’t code-signed yet, so your OS may warn you the first time. <a href="#help">Here’s how to open Vale anyway.</a></p>
+            <p>
+              Version <strong data-version>%VERSION%</strong><span class="dl-date" data-release-date></span> ·
+              <a href="https://github.com/Chezburgar/VALE/releases/latest">Release notes</a> ·
+              <a href="https://github.com/Chezburgar/VALE/releases">All releases</a>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Deadshot -->
+      <section class="section feature" id="deadshot">
+        <div class="feature-bg" aria-hidden="true"></div>
+        <div class="wrap">
+          <div class="feature-head">
+            <p class="eyebrow"><span class="eyebrow-line"></span>Featured on Vale</p>
+            <h2 class="wordmark">Deadshot<span class="dot">.io</span></h2>
+            <p class="edition">Vale Edition</p>
+            <p class="section-lead">Fast, skill-based arena FPS. Slide, scope and take the headshot — against bots on your own or with friends over LAN.</p>
+          </div>
+          <div class="facts">
+            <div class="fact"><strong>5</strong><span>Modes</span><small>FFA, Team Deathmatch, Kill Confirmed, Domination, Hardpoint</small></div>
+            <div class="fact"><strong>4</strong><span>Maps</span><small>Factory, Refinery, Snowfall and Forest</small></div>
+            <div class="fact"><strong>4</strong><span>Classes</span><small>Assault Rifle, SMG, Shotgun and Sniper, with unlockable finishes</small></div>
+            <div class="fact"><strong>12</strong><span>Players per lobby</span><small>Host from the desktop app; bots fill in offline at four difficulties</small></div>
+          </div>
+          <div class="gallery">
+            <button class="shot shot-main" data-full="media/deadshot/hero.jpg"><img src="media/deadshot/hero.jpg" alt="Refinery at sunset" loading="lazy" /><span>Refinery</span></button>
+            <button class="shot" data-full="media/deadshot/shot-4.jpg"><img src="media/deadshot/shot-4.jpg" alt="First blood on Factory" loading="lazy" /><span>Factory</span></button>
+            <button class="shot" data-full="media/deadshot/shot-5.jpg"><img src="media/deadshot/shot-5.jpg" alt="Domination on Snowfall" loading="lazy" /><span>Snowfall</span></button>
+            <button class="shot" data-full="media/deadshot/shot-3.jpg"><img src="media/deadshot/shot-3.jpg" alt="The river crossing on Forest" loading="lazy" /><span>Forest</span></button>
+            <button class="shot" data-full="media/deadshot/shot-1.jpg"><img src="media/deadshot/shot-1.jpg" alt="The Factory loading yard" loading="lazy" /><span>Factory</span></button>
+          </div>
+          <div class="feature-cta">
+            <a class="btn btn-primary" href="#download"><svg><use href="#i-download" /></svg><span>Get Vale</span></a>
+            <a class="btn btn-outline" href="./app/#/game/deadshot"><svg><use href="#i-play" /></svg><span>Try it in your browser</span></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- LAN -->
+      <section class="section" id="lan">
+        <div class="wrap lan">
+          <div class="lan-copy">
+            <p class="eyebrow"><span class="eyebrow-line"></span>LAN play</p>
+            <h2>Host the match from your own PC</h2>
+            <p class="section-lead">The desktop app has the Vale server built in. One player hosts, everyone on the same network joins — no accounts, no internet required.</p>
+          </div>
+          <ol class="steps">
+            <li>
+              <span class="step-n">1</span>
+              <div><h3>Turn on hosting</h3><p>In Vale, open <b>Settings → Desktop</b> and switch on <b>Host LAN games from this PC</b>. Vale shows the address friends should use.</p></div>
+            </li>
+            <li>
+              <span class="step-n">2</span>
+              <div><h3>Friends connect</h3><p>In Deadshot, go to <b>Play → Online · LAN</b> and enter the host’s address, e.g. <code>ws://192.168.1.20:8787/ws</code>. On the host PC itself, use <code>ws://localhost:8787/ws</code>.</p></div>
+            </li>
+            <li>
+              <span class="step-n">3</span>
+              <div><h3>No install? No problem</h3><p>Friends without the app can open <code>http://&lt;host-ip&gt;:8787</code> in a browser and play from there. Allow Vale through the firewall if your OS asks.</p></div>
+            </li>
+          </ol>
+          <p class="lan-note"><svg><use href="#i-wifi" /></svg><span>Browsers block <code>ws://</code> connections from secure (https) pages like this one, so the browser version on this site can’t join LAN lobbies on other PCs. Use the desktop app, or the host’s <code>http://</code> address above.</span></p>
+        </div>
+      </section>
+
+      <!-- Help -->
+      <section class="section" id="help">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="eyebrow"><span class="eyebrow-line"></span>First launch</p>
+            <h2>Opening an unsigned app</h2>
+            <p class="section-lead">Vale’s installers aren’t signed with a paid certificate yet. They’re built in the open by GitHub Actions from this repository — here’s how to get past the one-time warning.</p>
+          </div>
+          <div class="help-grid">
+            <details class="help" data-os="windows" open>
+              <summary><svg><use href="#i-windows" /></svg>Windows SmartScreen</summary>
+              <p>If you see “Windows protected your PC”, click <b>More info</b>, then <b>Run anyway</b>. The installer lets you pick the install folder and adds desktop and Start menu shortcuts. Uninstall from <b>Settings → Apps</b>.</p>
+            </details>
+            <details class="help" data-os="mac" open>
+              <summary><svg><use href="#i-apple" /></svg>macOS Gatekeeper</summary>
+              <p>Open <code>Vale.dmg</code> and drag Vale to Applications. The first time, right-click (or Control-click) Vale and choose <b>Open</b>, then <b>Open</b> again. If macOS says the app is damaged, run <code>xattr -cr /Applications/Vale.app</code> in Terminal, or allow it under <b>System Settings → Privacy &amp; Security</b>.</p>
+            </details>
+            <details class="help" data-os="linux" open>
+              <summary><svg><use href="#i-linux" /></svg>Linux</summary>
+              <p>AppImage: <code>chmod +x Vale.AppImage</code> and run it. Debian/Ubuntu: <code>sudo apt install ./vale.deb</code>, then launch Vale from your app menu.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <a class="brand" href="#top"><img src="brand/vale-logo.png" alt="" width="34" height="28" /><span>VALE</span></a>
+        <p class="footer-text">Vale <span data-version>%VERSION%</span> · Free for Windows, macOS and Linux</p>
+        <nav class="footer-links" aria-label="Links">
+          <a href="./app/">Play in browser</a>
+          <a href="https://github.com/Chezburgar/VALE/releases">Releases</a>
+          <a href="https://github.com/Chezburgar/VALE"><svg><use href="#i-github" /></svg>Source</a>
+        </nav>
+      </div>
+    </footer>
+
+    <dialog class="lightbox" id="lightbox" aria-label="Screenshot">
+      <form method="dialog"><button class="lightbox-close" aria-label="Close">×</button></form>
+      <img alt="" />
+    </dialog>
+
+    <script src="main.js" defer></script>
+  </body>
+</html>
