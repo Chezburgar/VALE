@@ -131,20 +131,52 @@ export class Hud {
   setMap(map: MapDef): void {
     this.map = map;
     const b = map.bounds;
-    const w = Math.ceil((b.maxX - b.minX) * this.miniScale);
-    const h = Math.ceil((b.maxZ - b.minZ) * this.miniScale);
+    const k = this.miniScale;
+    const w = Math.ceil((b.maxX - b.minX) * k);
+    const h = Math.ceil((b.maxZ - b.minZ) * k);
     const c = document.createElement('canvas');
     c.width = w;
     c.height = h;
     const ctx = c.getContext('2d')!;
     ctx.fillStyle = 'rgba(10,16,18,0.9)';
     ctx.fillRect(0, 0, w, h);
-    const boxes = [...map.boxes].filter((x) => x.collide && x.visible && x.maxY > 0.3 && x.maxY < 30).sort((p, q) => p.maxY - q.maxY);
-    for (const bx of boxes) {
+    const rect = (bx: { minX: number; minZ: number; maxX: number; maxZ: number }) =>
+      [(bx.minX - b.minX) * k, (bx.minZ - b.minZ) * k, (bx.maxX - bx.minX) * k, (bx.maxZ - bx.minZ) * k] as const;
+    const tint = (color: number, f: number, add = 0) => {
+      const r = Math.min(255, ((color >> 16) & 255) * f + add);
+      const g = Math.min(255, ((color >> 8) & 255) * f + add);
+      const bl = Math.min(255, (color & 255) * f + add);
+      return `rgb(${r | 0},${g | 0},${bl | 0})`;
+    };
+    // Ground: walkable floors and water, muted versions of their real colors.
+    const floors = map.boxes.filter((x) => x.visible && x.maxY <= 0.1 && x.maxY > -2 && (x.maxX - x.minX) * (x.maxZ - x.minZ) > 12).sort((p, q) => p.maxY - q.maxY);
+    for (const bx of floors) {
+      ctx.fillStyle = bx.mat === 'water' ? 'rgb(38,74,92)' : tint(bx.color, bx.mat === 'snow' ? 0.3 : 0.42, 8);
+      ctx.fillRect(...rect(bx));
+    }
+    // Roads and paths
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const p of map.props) {
+      if (p.kind !== 'ribbon' || !p.pts || p.r < 1) continue;
+      ctx.strokeStyle = p.tex === 'road' ? 'rgba(20,22,24,0.55)' : 'rgba(150,130,100,0.22)';
+      ctx.lineWidth = p.r * k;
+      ctx.beginPath();
+      p.pts.forEach(([x, z], i) => (i ? ctx.lineTo((x - b.minX) * k, (z - b.minZ) * k) : ctx.moveTo((x - b.minX) * k, (z - b.minZ) * k)));
+      ctx.stroke();
+    }
+    // Obstacles (including invisible prop colliders), brighter = taller.
+    const solids = map.boxes.filter((x) => x.collide && x.maxY > 0.3 && x.maxY < 30 && x.maxY - x.minY < 30 && x.minY < 6).sort((p, q) => p.maxY - q.maxY);
+    for (const bx of solids) {
       const l = Math.min(1, bx.maxY / 9);
-      const v = Math.round(60 + l * 120);
-      ctx.fillStyle = `rgb(${v},${v + 8},${v + 10})`;
-      ctx.fillRect((bx.minX - b.minX) * this.miniScale, (bx.minZ - b.minZ) * this.miniScale, (bx.maxX - bx.minX) * this.miniScale, (bx.maxZ - bx.minZ) * this.miniScale);
+      const v = Math.round(70 + l * 125);
+      ctx.fillStyle = `rgb(${v},${v + 6},${v + 8})`;
+      ctx.fillRect(...rect(bx));
+      if (bx.maxY - bx.minY > 2.4) {
+        ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(...rect(bx));
+      }
     }
     this.miniBase = c;
   }

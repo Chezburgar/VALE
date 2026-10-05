@@ -38,7 +38,7 @@ export function refinery(): MapDef {
   b.aabb(W - 0.4, 0, -D, W + 0.2, 3.2, D, 'concrete', 0xb3a894);
   b.bounds(-W, W, -D, D);
   // Plaza curb and center marking
-  b.ribbon('curb', [[-16, -16], [-16, 16], [16, 16], [16, -16], [-16, -16]], 0.35, { y: 0.02 });
+  b.ribbon('curb', [[-16, -16], [-16, 16], [16, 16], [16, -16], [-16, -16]], 0.35, { y: 0.02, color: 0x9a9284 });
   b.decal('manhole', 0, -6, 1.2, 1.2, { y: 0.02 });
 
   b.symmetric((b) => {
@@ -107,8 +107,8 @@ export function refinery(): MapDef {
     wallWindows(b, 'x', 6, 1, -39, -37, 1.6, { w: 1.2, h: 1.0, spacing: 2, lit: true });
     wallWindows(b, 'x', -6, -1, -39, -37, 1.6, { w: 1.2, h: 1.0, spacing: 2, lit: true });
     sign(b, 'CONTROL', -30.95, 3.55, 0, { w: 2.4, h: 0.6, rot: Math.PI / 2, bg: 0x2e3338, fg: 0xf0c02c });
-    acUnit(b, -33, -4.2, { y: 4.8, dir: 'N' });
-    acUnit(b, -33, 4.2, { y: 4.8, dir: 'S' });
+    acUnit(b, -31.9, -5.2, { y: 4.8, dir: 'N' });
+    acUnit(b, -31.9, 5.2, { y: 4.8, dir: 'S' });
     roofVent(b, -37, -4.6, { y: 4.8, kind: 'mushroom' });
     b.prop({ kind: 'cylinder', x: -39.2, y: 4.8, z: -5.2, r: 0.06, h: 5, d: 0.5, color: 0x9aa0a4, mat: 'steel', segments: 6 });
     for (const t of [2.2, 3.4, 4.4]) b.prop({ kind: 'box', x: -39.2, y: 4.8 + t, z: -5.2, r: 0.7 - t * 0.1, h: 0.04, d: 0.04, color: 0x9aa0a4, mat: 'steel', ao: false });

@@ -394,11 +394,12 @@ function propGeometry(p: Prop, scale: number): THREE.BufferGeometry | null {
   }
   const ao = (p.ao ?? AO_KINDS.has(p.kind)) && !absolute;
   const band = Math.min(0.7, Math.max(0.12, (y1 - y0) * 0.5));
+  const kMin = p.mat === 'leaves' ? 0.8 : 0.62;
   for (let i = 0; i < count; i++) {
     let k = 1;
     if (ao) {
       const t = Math.min(1, (pos.getY(i) - y0) / band);
-      k = 0.62 + 0.38 * t * t * (3 - 2 * t);
+      k = kMin + (1 - kMin) * t * t * (3 - 2 * t);
     }
     for (let j = 0; j < 3; j++) col[i * 3 + j] = (absolute ? prev.getComponent(i, j) : c[j] * (prev ? prev.getComponent(i, j) : 1)) * k;
   }
@@ -586,7 +587,7 @@ function scatterDef(kind: ScatterKind): ScatterDef {
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2 + r() * 0.8;
         const rr = r() * (tall ? 0.12 : 0.08);
-        bladeTris(tris, cols, Math.cos(a) * rr, Math.sin(a) * rr, a, (tall ? 0.55 : 0.2) + r() * (tall ? 0.4 : 0.18), tall ? 0.06 : 0.045, (tall ? 0.22 : 0.09) * (0.5 + r()), dark, tip, tall ? 3 : 2);
+        bladeTris(tris, cols, Math.cos(a) * rr, Math.sin(a) * rr, a, (tall ? 0.45 : 0.13) + r() * (tall ? 0.3 : 0.12), tall ? 0.055 : 0.04, (tall ? 0.2 : 0.07) * (0.5 + r()), dark, tip, tall ? 3 : 2);
       }
       return { geo: geoFromTris(tris, cols, true), blade: true, wind: true, flat: false };
     }
@@ -849,6 +850,8 @@ interface PatchOpts {
   macro?: number;
   patch?: boolean;
   ao?: boolean;
+  /** Scales the baked AO (foliage reads better with less). */
+  aoAmt?: number;
   wind?: boolean;
 }
 
@@ -873,6 +876,7 @@ function patchWorld(m: THREE.Material, sh: Shared, o: PatchOpts): void {
     shader.uniforms.uAOMap = sh.uAOMap;
     shader.uniforms.uAOBox = sh.uAOBox;
     shader.uniforms.uAOStr = sh.uAOStr;
+    shader.uniforms.uAOAmt = { value: o.aoAmt ?? 1 };
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
@@ -931,6 +935,7 @@ function patchWorld(m: THREE.Material, sh: Shared, o: PatchOpts): void {
         uniform sampler2D uAOMap;
         uniform vec4 uAOBox;
         uniform vec3 uAOStr;
+        uniform float uAOAmt;
         ${AO_GLSL}
         #endif`,
       )
@@ -958,7 +963,7 @@ function patchWorld(m: THREE.Material, sh: Shared, o: PatchOpts): void {
         `#include <aomap_fragment>
         #ifdef WORLD_AO
         {
-          float occ = worldAO(vWP, normalize(vWN));
+          float occ = worldAO(vWP, normalize(vWN)) * uAOAmt;
           reflectedLight.indirectDiffuse *= 1.0 - occ;
           reflectedLight.directDiffuse *= 1.0 - occ * 0.45;
         }
@@ -986,7 +991,7 @@ function solidMaterial(mat: MatId, anisotropy: number, sh: Shared): THREE.Materi
   const { tex } = materialTexture(mat, anisotropy);
   if (mat === 'glass') return new THREE.MeshPhongMaterial({ color: 0xffffff, vertexColors: true, transparent: true, opacity: 0.55, shininess: 100, specular: 0xffffff });
   const m = new THREE.MeshLambertMaterial({ map: tex, vertexColors: true, flatShading: mat === 'leaves' || mat === 'rock' });
-  patchWorld(m, sh, { macro: MACRO[mat] ?? 0.15, patch: true, ao: true });
+  patchWorld(m, sh, { macro: MACRO[mat] ?? 0.15, patch: true, ao: true, aoAmt: mat === 'leaves' ? 0.5 : 1 });
   return m;
 }
 
@@ -1054,8 +1059,8 @@ function waterMaterial(theme: Theme, sh: Shared): THREE.ShaderMaterial {
         vec3 R = reflect(-V, n);
         float spec = pow(max(dot(R, uSunDir), 0.0), 160.0);
         col += uSunColor * spec * 1.8;
-        float foam = smoothstep(0.55, 0.95, shallow) * smoothstep(0.45, 0.7, texture2D(uMacro, p * 0.5 + vec2(uTime * 0.06, 0.0)).b);
-        col = mix(col, vec3(0.85, 0.9, 0.9), foam * 0.45);
+        float foam = smoothstep(0.6, 1.0, shallow) * smoothstep(0.55, 0.8, texture2D(uMacro, p * 0.35 + vec2(uTime * 0.06, 0.0)).b);
+        col = mix(col, vec3(0.8, 0.86, 0.86), foam * 0.22);
         gl_FragColor = vec4(col, mix(0.78, 0.96, max(fres, foam)));
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -1424,7 +1429,7 @@ export function buildWorld(map: MapDef, anisotropy: number, shadows: boolean, pa
     for (const [kind, list] of byKind) {
       const def = scatterDef(kind);
       const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: def.blade ? THREE.DoubleSide : THREE.FrontSide, flatShading: def.flat });
-      patchWorld(m, sh, { macro: 0.3, ao: true, wind: def.wind });
+      patchWorld(m, sh, { macro: 0.3, ao: true, aoAmt: 0.75, wind: def.wind });
       const mesh = new THREE.InstancedMesh(def.geo, m, list.length);
       list.forEach((it, i) => {
         q.setFromAxisAngle(up, it.rot);

@@ -192,7 +192,7 @@ export function factory(): MapDef {
       },
       { trim: 0xc9c2b4, plinth: 0x6f6a64, doorLamp: true, floor: { mat: 'tile', color: 0xb8b4aa }, ceilingLight: 0xfff4dc },
     );
-    acUnit(b, -36, 22.4, { y: 4.5, dir: 'S' });
+    acUnit(b, -35.0, 21.86, { y: 4.5, dir: 'S' });
     roofVent(b, -40.6, 22.2, { y: 4.5, kind: 'pipe' });
     sign(b, 'OFFICE', -33.95, 3.0, 24, { w: 1.6, h: 0.45, rot: Math.PI / 2, bg: 0x2e3338 });
     b.panel('poster', -33.97, 1.2, 26.2, 0.6, 0.8, Math.PI / 2);
@@ -265,6 +265,14 @@ export function factory(): MapDef {
     b.decal('puddle', -18, 20.5, 2.6, 1.8, { rot: 0.8 });
     b.decal('manhole', -9, -18.5, 1.1, 1.1);
     b.decal('stain', -28, 20, 3.2, 2.6);
+
+    // Weeds in the cracks along the walls, grit on the asphalt
+    b.scatterArea('weed', -45.6, -33.6, -44.5, 33.6, 70, { seed: 41, color: 0x7f8f52, on: ['asphalt'], s: [0.7, 1.4] });
+    b.scatterArea('grass', -45.6, -33.6, -44.8, 33.6, 60, { seed: 42, color: 0x7a8a50, on: ['asphalt'], s: [0.6, 1.0] });
+    b.scatterArea('weed', -45.6, 32.4, 45.6, 33.6, 60, { seed: 43, color: 0x7f8f52, on: ['asphalt'], s: [0.7, 1.4] });
+    b.scatterArea('weed', -15.9, -10.3, -15.3, 10.3, 16, { seed: 44, color: 0x7f8f52, on: ['asphalt'] });
+    b.scatterArea('pebble', -45, -33, -16, 33, 90, { seed: 45, color: 0x8a8a86, on: ['asphalt'], s: [0.5, 0.9] });
+    b.scatterArea('debris', -45, -33, -16, 33, 24, { seed: 46, color: 0x8f8a80, on: ['asphalt'], s: [0.5, 0.9] });
 
     // Lamps
     streetLamp(b, -20, 12, { rot: Math.PI / 2, h: 6 });

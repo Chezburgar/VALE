@@ -1025,15 +1025,15 @@ const RIBBON_DRAW: ((c: CanvasRenderingContext2D, w: number, h: number, r: () =>
   (c, w, h, r) => {
     for (let x = 0; x < w; x++) {
       const t = Math.abs(x / w - 0.5) * 2;
-      c.fillStyle = `rgba(150,165,185,${0.5 * (1 - smooth(0.35, 1, t))})`;
+      c.fillStyle = `rgba(170,185,205,${0.4 * (1 - smooth(0.35, 1, t))})`;
       c.fillRect(x, 0, 1, h);
     }
     for (let i = 0; i < 28; i++) {
       const y = (i / 28) * h + r() * 6;
       const x = w * (i % 2 ? 0.36 : 0.62) + (r() - 0.5) * 10;
-      c.fillStyle = 'rgba(110,125,150,0.28)';
+      c.fillStyle = 'rgba(120,135,160,0.13)';
       c.beginPath();
-      c.ellipse(x, y, 7, 11, 0, 0, Math.PI * 2);
+      c.ellipse(x, y, 5, 8, 0, 0, Math.PI * 2);
       c.fill();
     }
   },

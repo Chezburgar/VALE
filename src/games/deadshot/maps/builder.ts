@@ -438,7 +438,7 @@ export class MapBuilder {
   }
 
   /** Canvas-text sign face (bottom center at x, y, z), facing local +Z rotated by `rot`. */
-  sign(text: string, x: number, y: number, z: number, w: number, h: number, rot = 0, o: { bg?: number; fg?: number; frame?: boolean } = {}): void {
+  sign(text: string, x: number, y: number, z: number, w: number, h: number, rot = 0, o: { bg?: number; fg?: number } = {}): void {
     this.prop({ kind: 'sign', text, x, y, z, r: w, h, rotY: rot, color: o.bg ?? 0x1f4f7a, fg: o.fg ?? 0xffffff });
   }
 

@@ -1,51 +1,109 @@
 /**
- * Deadshot prop library
- * =====================
- * Detailed low-poly decorations built on top of MapBuilder. Every helper has the
- * shape `name(b, x, z, opts?)` (fences/pipes take two end points) and works inside
- * `b.symmetric(...)`: the mirrored copy is rotated 180° around the origin, never
- * reflected, so seeded shapes and sign text stay correct.
+ * Deadshot map toolkit: prop library + builder primitives
+ * =======================================================
+ * Everything a map module needs to go from collision boxes to a detailed,
+ * stylized low-poly level. Read this header; the implementations are not needed.
  *
- * Conventions
- * - Meters, +Y up. (x, z) is the footprint center on the ground; `y` lifts the prop
- *   (default 0). To sit a prop on a roof/platform use `y: b.groundAt(x, z).y`.
- * - Orientation: props with colliders take `dir: Dir` ('N' = front faces +Z,
- *   'E' = +X, 'S' = -Z, 'W' = -X) because colliders are axis-aligned boxes.
- *   Visual-only props take `rot` (radians, any angle; 0 = front faces +Z).
- * - Collision: [C] = adds invisible AABB colliders (block movement and bullets),
- *   [V] = visual only. Most [C] props accept `collide: false`. Keep [C] props off
- *   spawns/objectives and out of 1-wide corridors, then run `npm run check:maps`.
- * - Colors are 0xRRGGBB tints over the grayscale material textures (MatId).
+ * QUICK START (inside a map's `b.symmetric((b) => { ... })` block)
+ *   container(b, -30, -5, false, 0xa3412f);              // same collider as b.container + doors/castings
+ *   barrels(b, -12, -15, { count: 3 });                   // drum cluster, each drum collides
+ *   jersey(b, -6, 15, { len: 3, h: 1, depth: 0.7 });      // concrete barrier, collider len x h x depth
+ *   streetLamp(b, -20, 12, { rot: Math.PI / 2 });         // pole collides, emissive head + halo + light pool
+ *   tree(b, x, z, { kind: 'oak', h: 9 });                 // same colliders as b.tree (trunk + soft canopy)
+ *   rockCluster(b, x, z, { w: 2.4, h: 1.3, d: 1.8 });     // one w x h x d collider dressed with irregular rocks
+ *   detailedBuilding(b, { ...b.building opts }, { trim, plinth, doorLamp: true });
+ *   b.decal('oil', x, z, 2, 1.5, { rot: 0.4 });           // y snaps to the ground surface automatically
+ *   b.ribbon('path', [[x0, z0], [x1, z1], ...], 2.2);     // road / path / painted line along a polyline
+ *   b.scatterArea('grass', x0, z0, x1, z1, 800, { on: ['grass'] });  // instanced clutter, only on grass
  *
- * Index
- *   Industrial  pallet [V] · palletStack [C] · drum [C] · barrels [C] · sandbags [C] · jersey [C]
- *               cableSpool [C] · generator [C] · acUnit [C] · roofVent [V] · pipeRun [V|C] · pipeLine [V]
- *               ladder [V] · trafficCone [V] · streetLamp [C pole] · lantern [C post] · container [C]
- *               tank [C] · crateStack [C] · debris [V] · hazardFloor [V]
- *   Buildings   detailedBuilding [C walls, like b.building] · frameOpening [V] · trimRect [V]
- *               awning [V] · sign [V] · wallWindows [V] · chimney [V]
- *   Fences      fence [C|V] (chain, wood, boards, picket, rail)
- *   Nature      tree [C trunk] (pine, oak, birch, dead, snowpine) · bush [V] · rockCluster [C]
- *               logPile [C] · snowCap [V] · grassPatch [V, instanced]
- *   Vehicles    truck [C] (box, flatbed, tanker; any length) · van [C] · forklift [C] · car [C]
- *   Ground      puddle / oil / decal helpers are on the builder: b.decal, b.ribbon (paths, lines)
+ * CONVENTIONS
+ * - Meters, +Y up. (x, z) is the footprint center on the ground; `y` lifts a prop
+ *   (default 0). To sit something on a roof/platform pass `y: b.groundAt(x, z).y`.
+ * - Every helper works inside `b.symmetric`: the mirrored half is rotated 180°
+ *   about the origin (never reflected), so seeded shapes and sign text stay correct.
+ *   Default seeds come from the authoring position, so both halves match and every
+ *   client builds identical colliders regardless of map build order.
+ * - Orientation: props with colliders take `dir: Dir` ('N' = front faces +Z, 'E' = +X,
+ *   'S' = -Z, 'W' = -X) because colliders are axis-aligned. Visual-only props take
+ *   `rot` (radians, any angle, 0 = front faces +Z; rotation follows three.js rotateY).
+ * - [C] = adds invisible AABB colliders (block movement + bullets; bullets pass soft
+ *   boxes), [V] = visual only. Most [C] helpers accept `collide: false` (use it when an
+ *   existing box already provides the collision). Big props collide, small clutter
+ *   does not. Keep [C] props ≥ 1.2 m from walls/other solids or flush against them
+ *   (narrow squeezes trap bots), keep them off spawns/objectives, then run
+ *   `npm run check:maps` and `npm run sim -- ffa,tdm <map> 60`.
+ * - Colors are 0xRRGGBB tints multiplied over grayscale material textures (MatId).
  *
- * Builder primitives (maps/builder.ts) used by these helpers and available directly:
- *   b.aabb / b.box / b.wallX / b.wallZ / b.stairs / b.platform / b.post     collision boxes
- *   b.prop({ kind, x, y, z, r, h, d, color, mat, rotY, rotX, rotZ, ... })  visual mesh:
- *       box | ellipsoid | rock | blob    r = width (X), h = height, d = depth (Z); pivot = bottom center
- *       cylinder | cone                 r = radius, h = height (cylinder: d = top radius ratio,
- *                                       axis 'x'/'z' = lying, starting at x/z); cone: jag = star skirt
- *       extrude                         profile [[z, y]...] swept along local X for length r
- *       sphere | prism | mountain       see builder.ts
- *     Rotations are radians in YXZ order about the pivot. `seed` varies rock/blob/cone jitter.
- *   b.decal(id, x, z, w, d, { rot, y, color })   flat ground decal (DecalId: puddle, oil, crack, ...)
- *   b.ribbon(id, pts, width, { y, color })        strip along a polyline (RibbonId: path, line, ...)
- *   b.panel(id, x, y, z, w, h, rot, color?)       upright textured quad (PanelId: window, door, ...)
- *   b.sign(text, x, y, z, w, h, rot, { bg, fg })  canvas-text sign face facing local +Z
- *   b.glow(x, y, z, size, color)                  additive halo sprite (lamps, flares)
- *   b.scatter / b.scatterArea                     instanced grass, flowers, pebbles, debris, ...
- *   b.groundAt(x, z) -> { y, mat }                top of the highest box under a point
+ * PROP INDEX (this file)
+ *   Industrial  pallet [V] · palletStack [C] (cargo boxes/sacks) · drum [C] · barrels [C]
+ *               sandbags [C] · jersey [C] · cableSpool [C] · generator [C] · acUnit [C]
+ *               roofVent [V] · pipeRun [V, C opt] (flanges, H-frame supports) · pipeLine [V] (3D bends)
+ *               ladder [V] (cage opt) · trafficCone [V] · streetLamp [C pole] · lantern [C post]
+ *               container [C] · tank [C] (bands, caged ladder, roof rail, label) · crateStack [C]
+ *               debris [V] · hazardFloor [V]
+ *   Buildings   detailedBuilding [C walls = b.building] (frames, sills, plinth, coping/eaves,
+ *               corner trims, door lamps, downspouts, shutters, interior floor, ceiling light)
+ *               frameOpening [V] · trimRect [V] (roof edges/coping) · wallWindows [V] (fake windows,
+ *               lit option) · awning [V] (striped opt) · sign [V] (canvas text + backing board,
+ *               posts opt) · chimney [V]
+ *   Fences      fence [C axis-aligned, V diagonal]: 'chain' (cut-out mesh), 'wood', 'boards' (solid),
+ *               'picket', 'rail' (guard rail)
+ *   Nature      tree [C trunk + soft canopy]: 'pine', 'oak', 'birch', 'dead', 'snowpine'
+ *               bush [V, soft opt] · rockCluster [C] (snow/moss caps) · logPile [C] · snowCap [V]
+ *               grassPatch [V, instanced grass/tall grass/flowers]
+ *   Vehicles    truck [C] ('box' | 'flatbed' | 'tanker', any `len`) · van [C] · forklift [C] · car [C]
+ *   Utilities   shade(color, k) · dirRot(dir)
+ *
+ * SCENERY (maps/common.ts, all visual, drawn without shadows outside the bounds)
+ *   mountains(b, r, color, snowCap | null, seed, { count, height })   jagged peaks 60-140 m past r
+ *   hills(b, r0, r1, color, seed, { count, mat, h })                    rolling foothills (blobs)
+ *   treeline(b, r0, r1, count, color, seed, { snow, h, skip })          distant low-poly forest
+ *   skyline(b, r0, r1, seed, { count, colors, stacks })                 warehouses + smokestacks
+ *
+ * BUILDER PRIMITIVES (maps/builder.ts)
+ *   Collision: b.aabb / b.box / b.wallX / b.wallZ / b.stairs / b.platform / b.post / b.building
+ *     (`roofMat` sets a pitched roof's material). Box extras (visual only): `patch` (second color
+ *     blended in soft world-space patches on top faces, e.g. dry grass, dirt), `sideMat`/`sideColor`
+ *     (material of vertical faces, e.g. dirt banks under grass, rock cliffs). `collide: false`
+ *     makes a visual-only box (trims, floor overlays); `visible: false` an invisible collider.
+ *   b.prop({ kind, x, y, z, r, h, d, color, mat, rotX, rotY, rotZ, ... })  merged visual mesh:
+ *     box | ellipsoid | rock | blob   r = width (X), h = height, d = depth (Z), pivot = bottom center;
+ *                                     rock = faceted stone, blob = soft lump (foliage/snow), `seed` varies
+ *     cylinder | cone                 r = radius, h = height, pivot = bottom center; cylinder d = top
+ *                                     radius ratio; lay it down with rotZ: -PI/2 (along +X) or
+ *                                     rotX: PI/2 (along +Z); cone `jag` = star-shaped drooping skirt
+ *     extrude                         `profile` [[z, y], ...] swept r meters along local X (centered)
+ *     sphere (centered) | prism (gable roof, r = ridge length along X, h, d) | mountain (distant peak, `cap`)
+ *     Rotations are radians, YXZ order, about the pivot. `emissive: 0xRRGGBB` = unlit glowing color.
+ *     `ao: false` disables the baked contact darkening toward the prop's base (use it for parts
+ *     that do not touch the ground).
+ *   b.decal(id, x, z, w, d, { rot, y, color })  flat alpha decal; DecalId: puddle oil crack dirt leaves
+ *     sand manhole grate arrow (tip toward local +Z) hazard scorch moss gravel snowdrift stain light
+ *     ('light' = additive lamp pool scaled by theme.glow)
+ *   b.ribbon(id, pts, width, { y, color })      strip along a polyline; RibbonId: path snowpath line
+ *     dashed tracks gravel road curb
+ *   b.panel(id, x, y, z, w, h, rot, color?, flat?)  upright textured quad (bottom center, faces local +Z;
+ *     `flat` = face-up, centered); PanelId: chain window windowLit (glows) vent door shutter fan poster
+ *   b.sign(text, x, y, z, w, h, rot, { bg, fg })   canvas-text face (props.sign adds a backing board)
+ *   b.glow(x, y, z, size, color)                    additive camera-facing halo, scaled by theme.glow
+ *   b.scatter(kind, x, z, { y, s, rot, color }) / b.scatterArea(kind, x0, z0, x1, z1, count,
+ *     { seed, color, colorVar, s: [min, max], on: MatId[], maxY, avoid: [[x0, z0, x1, z1]] })
+ *     instanced clutter dropped on the surface below (skips points under solids and roofs);
+ *     ScatterKind: grass tallgrass flowers fern weed reed leaves pebble debris twig snowclump mushroom
+ *   b.groundAt(x, z, maxY?) -> { y, mat }        highest surface at/below maxY (mat null = blocked)
+ *
+ * THEME (MapDef.theme) rendering knobs
+ *   clouds { cover 0..1, color, shade, scale, speed } · glow (lamps/lit windows/halos, 1 = default,
+ *   ~0.4 for bright daylight, >1 at dusk) · water { shallow, deep } for 'water' boxes (animated) ·
+ *   backdrop { mat, color, patch, y, hole } ground ring to the horizon (default: largest ground box).
+ *
+ * RENDERING NOTES (render/worldmesh.ts)
+ * - Boxes and solid props merge into one mesh per material; ambient occlusion is baked from a
+ *   25 cm heightfield of all boxes/props (walls, overhangs, canopies darken what is next to and
+ *   under them), so no manual AO work is needed.
+ * - Quality 'low' skips decals, light pools, scatter and baked AO. Budget per map: roughly
+ *   < 150 draw calls and < 400k triangles (check renderer.info); current maps use ~100-120 calls
+ *   and 80-170k triangles. Prefer scatter (instanced) for anything repeated hundreds of times.
  */
 import type { Box, MatId } from '../world';
 import { MapBuilder, rng, type Dir, type Prop } from './builder';
@@ -446,7 +504,7 @@ export function lantern(b: MapBuilder, x: number, z: number, o: { h?: number; y?
  * [C] 6 m shipping container with doors (on the `doors` end), corner castings and
  * top rails. Same collider as `b.container`. `alongX` = long side along X.
  */
-export function container(b: MapBuilder, cx: number, cz: number, alongX: boolean, color: number, o: { y?: number; doors?: 1 | -1; open?: boolean } = {}): void {
+export function container(b: MapBuilder, cx: number, cz: number, alongX: boolean, color: number, o: { y?: number; doors?: 1 | -1 } = {}): void {
   const y = o.y ?? 0;
   b.container(cx, cz, alongX, color, y);
   const f = new Frame(b, cx, cz, alongX ? 0 : Math.PI / 2, y);
@@ -496,7 +554,11 @@ export function tank(b: MapBuilder, cx: number, cz: number, r: number, h: number
     const mz = (Math.cos(a) + Math.cos(a2)) / 2 * (r - 0.15);
     lf.box(mx, h + 1.2, mz, (r - 0.15) * 0.26, 0.05, 0.05, 0xd8c040, 'steel', { rotY: (a + a2) / 2 + Math.PI / 2, ao: false });
   }
-  if (o.label) b.sign(o.label, lf.wx(0, r + 0.03), y + h * 0.55, lf.wz(0, r + 0.03), Math.min(r * 1.2, 4), 0.9, lr, { bg: color, fg: o.labelColor ?? 0x2a2d30, frame: false });
+  if (o.label) {
+    // A flat label on a curved wall: keep it narrow so the edges stay close to the surface.
+    const lw = Math.min(r * 0.62, 3);
+    b.sign(o.label, lf.wx(0, r + 0.03), y + h * 0.55, lf.wz(0, r + 0.03), lw, lw * 0.3, lr, { bg: color, fg: o.labelColor ?? 0x2a2d30 });
+  }
 }
 
 /** [C] Crates stacked in a pyramid-ish pile (count 2..6), using the crate material. */
@@ -838,14 +900,14 @@ export function tree(b: MapBuilder, x: number, z: number, o: { kind?: TreeKind; 
       b.box(x, y + trunkH, z, h * 0.32, (h - trunkH) * 0.8, h * 0.32, 'leaves', 0x2d5e33, { collide: false, soft: true, visible: false });
     }
     f.cyl(0, 0, 0, 0.26, h * 0.75, 0x5b4230, 'bark', 7, 0.35);
-    const base = o.tint ?? (kind === 'snowpine' ? 0x2c5644 : 0x2f6236);
+    const base = o.tint ?? (kind === 'snowpine' ? 0x356a50 : 0x3c7a40);
     const layers = 5 + Math.floor(r() * 2);
     for (let i = 0; i < layers; i++) {
       const t = i / (layers - 1);
       const ly = trunkH * 0.75 + t * (h - trunkH * 0.75) * 0.8;
       const lr = h * 0.25 * (1 - t * 0.78) * (0.92 + r() * 0.16);
       const lh = (h - trunkH) * (0.36 - t * 0.12);
-      const col = shade(base, 0.78 + t * 0.35 + jit(r, 0.05));
+      const col = shade(base, 0.86 + t * 0.3 + jit(r, 0.05));
       f.cone(jit(r, 0.08), ly, jit(r, 0.08), lr, lh, col, 'leaves', 9, { seed: seed + i, jag: 0.28, rotY: r() * 6.28 });
       if (kind === 'snowpine') f.cone(jit(r, 0.05), ly + lh * 0.3, jit(r, 0.05), lr * 0.78, lh * 0.62, 0xeef4f8, 'snow', 9, { seed: seed + 40 + i, jag: 0.3, rotY: r() * 6.28 });
     }
@@ -862,7 +924,7 @@ export function tree(b: MapBuilder, x: number, z: number, o: { kind?: TreeKind; 
       const a = (i / 3) * 6.283 + r();
       b.prop({ kind: 'cylinder', x: f.wx(0, 0), y: y + trunkH * 0.8, z: f.wz(0, 0), r: 0.14, h: h * 0.28, d: 0.5, color: 0x5b4230, mat: 'bark', segments: 6, rotY: a, rotX: 0.8 + r() * 0.3, ao: false });
     }
-    const base = o.tint ?? 0x467f37;
+    const base = o.tint ?? 0x4f8a3a;
     const blobs = 6 + Math.floor(r() * 3);
     const cr = h * 0.27;
     for (let i = 0; i < blobs; i++) {
