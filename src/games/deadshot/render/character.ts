@@ -105,7 +105,7 @@ export interface Rig {
   gunOffsets: Map<ClassId, { pos: THREE.Vector3; quat: THREE.Quaternion }>;
 }
 
-let rig: { asset: PlayerAsset; rig: Rig } | null = null;
+const rigs = new WeakMap<PlayerAsset, Rig>();
 
 /** Palm centres in hand bone space (hand bones point along +Y to the fingers). */
 export const PALM = new THREE.Vector3(0.0, 0.075, 0.02);
@@ -114,7 +114,8 @@ export const PALM_L = new THREE.Vector3(0.0, 0.075, 0.02);
 const GUN_FORWARD = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
 
 export function playerRig(asset: PlayerAsset): Rig {
-  if (rig && rig.asset === asset) return rig.rig;
+  const cached = rigs.get(asset);
+  if (cached) return cached;
   const model = cloneSkinned(asset.scene);
   const mixer = new THREE.AnimationMixer(model);
   mixer.clipAction(asset.clips.get('ref')!).play();
@@ -131,7 +132,7 @@ export function playerRig(asset: PlayerAsset): Rig {
   mixer.uncacheRoot(model);
   const idleHips = asset.clips.get('idle')!.tracks.find((t) => t.name === 'mixamorigHips.position');
   const r: Rig = { spineRef, hand, headZ: head.z - hips.z, idleHipsY: idleHips ? idleHips.values[1] : 0.93, arms, gunOffsets: new Map() };
-  rig = { asset, rig: r };
+  rigs.set(asset, r);
   return r;
 }
 
@@ -569,6 +570,8 @@ class SkinnedSoldier implements CharacterView {
     this.root.removeFromParent();
     this.mixer.stopAllAction();
     this.mixer.uncacheRoot(this.model);
+    // Geometry, textures and clips are shared; only per-clone GPU data goes.
+    this.model.traverse((o) => (o as THREE.SkinnedMesh).skeleton?.dispose());
     this.mat.dispose();
     this.tag.dispose();
   }

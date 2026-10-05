@@ -125,6 +125,7 @@ class SkinnedArms {
 
   dispose(): void {
     this.root.removeFromParent();
+    this.model.traverse((o) => (o as THREE.SkinnedMesh).skeleton?.dispose());
     this.mat.dispose();
   }
 }
