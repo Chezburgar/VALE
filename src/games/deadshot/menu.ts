@@ -510,9 +510,24 @@ export class Menu {
     this.death.querySelectorAll<HTMLButtonElement>('.ds-class-quick button').forEach((x) => x.classList.toggle('on', x.dataset.cls === c));
   }
 
-  showLoading(text: string | null): void {
+  /** Loading overlay; `progress` (0..1) adds a percentage and a bar. */
+  showLoading(text: string | null, progress?: number): void {
     this.loading.style.display = text ? '' : 'none';
-    if (text) this.loading.innerHTML = `<div class="ds-loading-inner"><div class="ds-logo">DEADSHOT<span>.io</span></div><div class="ds-spinner"></div><div class="ds-h">${esc(text)}</div></div>`;
+    if (!text) return;
+    const label = progress === undefined ? text : `${text} ${Math.round(progress * 100)}%`;
+    const bar = this.loading.querySelector<HTMLElement>('.ds-loading-bar i');
+    const head = this.loading.querySelector<HTMLElement>('.ds-loading-inner .ds-h');
+    // Update in place while progress ticks so the spinner keeps turning.
+    if (progress !== undefined && bar && head) {
+      head.textContent = label;
+      bar.style.width = `${progress * 100}%`;
+      return;
+    }
+    const track =
+      progress === undefined
+        ? ''
+        : `<div class="ds-loading-bar" style="width:220px;height:3px;border-radius:2px;background:rgba(255,255,255,0.12);overflow:hidden"><i style="display:block;height:100%;width:${progress * 100}%;background:var(--ds-red);transition:width 0.15s"></i></div>`;
+    this.loading.innerHTML = `<div class="ds-loading-inner"><div class="ds-logo">DEADSHOT<span>.io</span></div><div class="ds-spinner"></div><div class="ds-h">${esc(label)}</div>${track}</div>`;
   }
 
   showEnd(

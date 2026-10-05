@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { TIERS, type ClassId, type Tier } from '../config';
+import { getModels, gunMaterial } from './models';
 
-// Low-poly weapon models built from primitives. Origin is at the trigger,
-// barrel points down -Z. Tier finishes recolor the accent parts.
+// Weapon models. Both builders share one convention: barrel down -Z, up +Y,
+// origin near the right hand. The GLB guns are used once loaded; the
+// primitive guns below are the fallback when the model files are missing.
 
 export interface GunModel {
   group: THREE.Group;
@@ -11,9 +13,71 @@ export interface GunModel {
   sightY: number;
   /** Z of the rear sight / scope eyepiece. */
   sightZ: number;
+  /** Palm centre of the right hand on the pistol grip. */
+  grip: THREE.Vector3;
+  /** Palm centre of the supporting left hand. */
+  fore: THREE.Vector3;
   mag: THREE.Object3D | null;
+  /** Rest position of `mag` (reload animations offset from it). */
+  magRest: THREE.Vector3;
   bolt: THREE.Object3D | null;
   scope: boolean;
+  /** True for the GLB model (single mesh plus an optional detachable mag). */
+  glb: boolean;
+}
+
+/** Builds the GLB gun when models are loaded, otherwise the primitive one. */
+export function buildGun(cls: ClassId, tier: Tier): GunModel {
+  return buildModelGun(cls, tier) ?? buildProceduralGun(cls, tier);
+}
+
+function buildModelGun(cls: ClassId, tier: Tier): GunModel | null {
+  const models = getModels();
+  const material = gunMaterial(cls, tier);
+  if (!models || !material) return null;
+  const asset = models.guns[cls];
+  const s = asset.spec;
+  const L = s.length;
+  const [gx, gy] = s.grip;
+  // File space (muzzle -X, 1 m long) -> gun space (muzzle -Z, real size,
+  // origin on the grip): rotating -90 deg about Y maps (x, y, z) to (-z, y, x).
+  const local = (x: number, y: number) => new THREE.Vector3(0, (y - gy) * L, (x - gx) * L);
+  const place = (o: THREE.Object3D) => {
+    o.rotation.y = -Math.PI / 2;
+    o.scale.setScalar(L);
+    o.position.set(0, -gy * L, -gx * L);
+  };
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(asset.body, material);
+  place(body);
+  body.castShadow = true;
+  group.add(body);
+  let mag: THREE.Object3D | null = null;
+  if (asset.mag) {
+    mag = new THREE.Group();
+    const m = new THREE.Mesh(asset.mag, material);
+    place(m);
+    m.castShadow = true;
+    mag.add(m);
+    group.add(mag);
+  }
+  const muzzle = new THREE.Object3D();
+  muzzle.position.copy(local(...s.muzzle));
+  group.add(muzzle);
+  const sight = local(s.sight[0], s.sight[1]);
+  return {
+    group,
+    muzzle,
+    sightY: sight.y,
+    sightZ: sight.z,
+    grip: new THREE.Vector3(),
+    fore: local(...s.fore),
+    mag,
+    magRest: new THREE.Vector3(),
+    bolt: null,
+    scope: cls === 'sniper',
+    glb: true,
+  };
 }
 
 const matCache = new Map<string, THREE.Material>();
@@ -65,7 +129,7 @@ function tube(g: THREE.Object3D, m: THREE.Material, r: number, x: number, y: num
   return mesh;
 }
 
-export function buildGun(cls: ClassId, tier: Tier): GunModel {
+function buildProceduralGun(cls: ClassId, tier: Tier): GunModel {
   const g = new THREE.Group();
   const M = materials(tier);
   const muzzle = new THREE.Object3D();
@@ -160,5 +224,18 @@ export function buildGun(cls: ClassId, tier: Tier): GunModel {
       o.castShadow = true;
     }
   });
-  return { group: g, muzzle, sightY, sightZ, mag, bolt, scope };
+  const foreZ = cls === 'smg' ? -0.3 : cls === 'sniper' ? -0.42 : -0.44;
+  return {
+    group: g,
+    muzzle,
+    sightY,
+    sightZ,
+    grip: new THREE.Vector3(0, -0.05, 0.04),
+    fore: new THREE.Vector3(0, 0.0, foreZ),
+    mag,
+    magRest: mag ? mag.position.clone() : new THREE.Vector3(),
+    bolt,
+    scope,
+    glb: false,
+  };
 }

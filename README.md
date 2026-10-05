@@ -121,6 +121,16 @@ Controls: `WASD` move · mouse aim · `LMB` shoot · `RMB`/`L` aim · `Space` ju
 
 > This is an independent fan recreation. It is not affiliated with or endorsed by the creators of Deadshot.io, and it uses none of the original game's code or assets.
 
+### Models
+
+The soldier and the four guns are low-poly GLB files in `src/games/deadshot/assets/models/` (about 1.6 MB together). They were optimized from the 2048² sources: base colour textures resized to 1024² JPEG, the flat normal maps dropped, gun metal/roughness maps at 512² and constant factors for the soldier. `render/models.ts` preloads them behind the loading screen (Vite `?url` imports, so they are hashed and cached by the Vale installer) and shares their geometry, textures and clips between every character and gun.
+
+- **Characters** (`render/character.ts`) are skinned clones of the Mixamo rig. Running, back-pedalling and strafing (the strafe clip mirrored for the right) drive only the legs, blended by velocity in the actor's frame; the upper body holds a rifle pose aimed with the spine and shoulders. Idle, crouch, slide and leg placement are procedural (two-bone IK), the left hand is solved onto the fore-grip, and deaths pick one of three clips from the direction of the killing shot. Team colour is a tint on a per-character material over the camo.
+- **Guns** (`render/guns.ts`) are placed from per-gun measurements in `GUN_SPECS` (muzzle, grip, fore-grip, sight line, magazine), so the same model serves the view model, characters and loadout previews. Finishes are material variants of the texture; PBR materials get a `RoomEnvironment` map while the world keeps its Lambert look.
+- **View model** (`render/viewmodel.ts`) uses the soldier's own arms cut from the skinned mesh, with the hands placed on the grip and fore-grip, and cuts a see-through hole in red-dot optics while aiming.
+
+If the files fail to load, the game falls back to the procedural blocky soldier and primitive guns.
+
 ## Project layout
 
 ```
@@ -135,6 +145,7 @@ src/games/deadshot/            the game (lazy-loaded chunk)
   actor.ts, bot.ts, sim.ts     players, bot AI, headless simulation step
   match.ts                     modes, hit detection, damage, scoring, spawns
   render/                      world meshes, sky, characters, guns, view model, effects
+  assets/models/               optimized GLB soldier and guns (see Models above)
   hud.ts, menu.ts, audio.ts    UI and sound
   net.ts                       LAN client
 server/lan.js                  static server + WebSocket lobbies (shared by CLI and desktop app)
