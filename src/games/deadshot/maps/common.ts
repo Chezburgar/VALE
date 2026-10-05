@@ -3,8 +3,8 @@ import { MapBuilder, rng, yawTo, type MapDef, type V3 } from './builder';
 
 export const v = (x: number, y: number, z: number): V3 => ({ x, y, z });
 
-export function finish(id: MapId, b: MapBuilder, o: Omit<MapDef, 'id' | 'boxes' | 'props' | 'spawns'>): MapDef {
-  return { id, boxes: b.boxes, props: b.props, spawns: b.spawns, ...o };
+export function finish(id: MapId, b: MapBuilder, o: Omit<MapDef, 'id' | 'boxes' | 'props' | 'instances' | 'spawns'>): MapDef {
+  return { id, boxes: b.boxes, props: b.props, instances: b.instances, spawns: b.spawns, ...o };
 }
 
 /** Spawns in a column facing the map center. */
