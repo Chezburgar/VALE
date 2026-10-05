@@ -184,10 +184,10 @@ export function gunMaterial(cls: ClassId, tier: Tier): THREE.MeshStandardMateria
     m.emissive.copy(c).multiplyScalar(0.06);
     m.roughness = 0.7;
   } else if (tier === 3) {
-    m.color.setRGB(2.3, 1.55, 0.5);
+    m.color.setRGB(2.0, 1.36, 0.42);
     m.metalness = 1;
     m.roughness = 0.45;
-    m.envMapIntensity = 1.25;
+    m.envMapIntensity = 1.1;
     m.emissive.setRGB(0.08, 0.05, 0.0);
   }
   m.envMap = envTex;

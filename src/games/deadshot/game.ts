@@ -249,9 +249,12 @@ export class Game {
         disposeModels();
         return;
       }
-      // Previews and the view model were built from the fallback guns.
+      // Previews, the view model and any characters were built from the
+      // fallback models; rebuild them from the GLBs.
       this.gunCache.clear();
       this.vm.resetGun();
+      for (const c of this.chars.values()) c.dispose();
+      this.chars.clear();
       this.menu.showLoading(null);
       if (this.state === 'menu') this.menu.show(true);
     });

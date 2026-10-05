@@ -27,6 +27,12 @@ const R_FORE = new THREE.Vector3(0.32, -0.62, 0.72).normalize();
 const L_FORE = new THREE.Vector3(-0.42, -0.82, 0.4).normalize();
 /** Right-hand finger direction (gun space): wrapped forward around the pistol grip. */
 const R_FINGERS = new THREE.Vector3(-0.45, -0.3, -0.85).normalize();
+/**
+ * Left-hand finger direction: along the handguard. The mitten hand has no
+ * finger bones, so fingers wrapped across it would stick out the far side
+ * as a flat paddle in the sight picture.
+ */
+const L_FINGERS = new THREE.Vector3(0.3, 0.2, -0.93).normalize();
 
 /** Sniper bolt handle (file space) and the shotgun's loading port, for the right / left hand. */
 const BOLT: [number, number] = [0.205, 0.03];
@@ -62,8 +68,10 @@ class SkinnedArms {
     };
     const A = rig.arms;
     const [rFore, rHand0] = swing(A.rFore, A.rHand, R_FORE);
-    const [lFore, lHand] = swing(A.lFore, A.lHand, L_FORE);
-    const rHand = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0).applyQuaternion(rHand0), R_FINGERS).multiply(rHand0);
+    const [lFore, lHand0] = swing(A.lFore, A.lHand, L_FORE);
+    const point = (hand: THREE.Quaternion, dir: THREE.Vector3) => new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0).applyQuaternion(hand), dir).multiply(hand);
+    const rHand = point(rHand0, R_FINGERS);
+    const lHand = point(lHand0, L_FINGERS);
     this.grip = { rFore, rHand, lFore, lHand, rLen: A.rLen, lLen: A.lLen };
     this.model = cloneSkinned(asset.scene);
     this.mat = asset.material.clone();

@@ -382,11 +382,12 @@ class SkinnedSoldier implements CharacterView {
     this.animateGun();
     this.poseLeftArm();
 
-    // Hit flash / spawn shimmer
+    // Hit flash / spawn shimmer. The shimmer pulses in the team colour: a
+    // white glow would wash the tinted camo out to a plain white figure.
     this.hitFlash = Math.max(0, this.hitFlash - dt);
-    const shimmer = a.spawnProtect > 0 ? 0.3 + Math.sin(time * 18) * 0.25 : 0;
-    const e = this.hitFlash > 0 ? 0.55 : shimmer;
-    this.mat.emissive.copy(this.tint).multiplyScalar(0.05).addScalar(e);
+    const shimmer = a.spawnProtect > 0 ? 0.17 + Math.sin(time * 18) * 0.15 : 0;
+    this.mat.emissive.copy(this.tint).multiplyScalar(0.05 + shimmer);
+    if (this.hitFlash > 0) this.mat.emissive.addScalar(0.35);
   }
 
   // The mixer only writes a bone when its blended value changed since the
