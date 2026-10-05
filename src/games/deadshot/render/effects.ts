@@ -176,8 +176,11 @@ export class Effects {
     for (const t of this.tracers) {
       if (!t.active) continue;
       t.t += dt;
-      const head = Math.min(t.len, t.t * TRACER_SPEED);
-      const tail = Math.max(0, head - Math.min(7, t.len * 0.5));
+      // The tail trails the unclamped front, so it reaches the impact point and
+      // the tracer retires once the whole streak has arrived.
+      const front = t.t * TRACER_SPEED;
+      const head = Math.min(t.len, front);
+      const tail = Math.min(t.len, Math.max(0, front - Math.min(7, t.len * 0.5)));
       if (tail >= t.len - 0.01) {
         t.active = false;
         t.mesh.visible = false;
