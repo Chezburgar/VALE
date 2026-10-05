@@ -180,26 +180,47 @@ export function aimBone(bone: THREE.Object3D, from: THREE.Vector3, to: THREE.Vec
   bone.updateMatrixWorld(true);
 }
 
+// Scratch for the per-frame IK (aimBone and turnBone use _v0-_v2 / _q0-_q2).
+const _ikA = new THREE.Vector3();
+const _ikDir = new THREE.Vector3();
+const _ikSide = new THREE.Vector3();
+const _ikMid = new THREE.Vector3();
+const _ikEnd = new THREE.Vector3();
+// Scratch for the soldiers' pose passes (one soldier is posed at a time).
+const _footPos = [new THREE.Vector3(), new THREE.Vector3()];
+const _footRot = [new THREE.Quaternion(), new THREE.Quaternion()];
+const _fwd = new THREE.Vector3();
+const _left = new THREE.Vector3();
+const _hip = new THREE.Vector3();
+const _slideFoot = new THREE.Vector3();
+const _pole = new THREE.Vector3();
+const _pivotQ = new THREE.Quaternion();
+const _axis = new THREE.Vector3();
+const _wrist = new THREE.Vector3();
+/** Left wrist relative to the fore-grip palm point (gun space). */
+const WRIST_OFFSET = new THREE.Vector3(-0.02, -0.035, 0.07);
+const DOWN = new THREE.Vector3(0, -1, 0);
+
 /** Analytic two-bone IK: places `end` at `target` with the middle joint bending toward `pole`. */
 function solveTwoBone(upper: THREE.Bone, mid: THREE.Bone, end: THREE.Bone, target: THREE.Vector3, pole: THREE.Vector3): void {
-  const a = upper.getWorldPosition(new THREE.Vector3());
+  const a = upper.getWorldPosition(_ikA);
   const b = mid.getWorldPosition(_v3);
   const c = end.getWorldPosition(_v4);
   const lab = a.distanceTo(b);
   const lbc = b.distanceTo(c);
-  const dir = target.clone().sub(a);
+  const dir = _ikDir.copy(target).sub(a);
   const lat = THREE.MathUtils.clamp(dir.length(), Math.abs(lab - lbc) + 1e-3, lab + lbc - 1e-3);
   dir.normalize();
-  const side = pole.clone().sub(a);
+  const side = _ikSide.copy(pole).sub(a);
   side.addScaledVector(dir, -side.dot(dir));
   if (side.lengthSq() < 1e-8) side.set(0, 1, 0);
   side.normalize();
   const x = (lab * lab - lbc * lbc + lat * lat) / (2 * lat);
   const h = Math.sqrt(Math.max(0, lab * lab - x * x));
-  const elbow = a.clone().addScaledVector(dir, x).addScaledVector(side, h);
-  aimBone(upper, b.clone(), elbow);
+  const elbow = _ikEnd.copy(a).addScaledVector(dir, x).addScaledVector(side, h);
+  aimBone(upper, _ikMid.copy(b), elbow);
   const reach = a.addScaledVector(dir, lat);
-  aimBone(mid, end.getWorldPosition(new THREE.Vector3()), reach);
+  aimBone(mid, end.getWorldPosition(_ikMid), reach);
 }
 
 class SkinnedSoldier implements CharacterView {
@@ -216,6 +237,8 @@ class SkinnedSoldier implements CharacterView {
   private deathKey: (typeof DEATHS)[number] = 'dieBack';
   private bone: Record<string, THREE.Bone> = {};
   private bones: THREE.Bone[] = [];
+  /** Thigh, shin and foot of the left and right leg. */
+  private legs: [THREE.Bone, THREE.Bone, THREE.Bone][];
   /** Bone transforms as the mixer left them (see restorePose). */
   private mixed: Float32Array;
   private rig: Rig;
@@ -251,6 +274,11 @@ class SkinnedSoldier implements CharacterView {
         mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0.8, 0), 1.7);
       }
     });
+    const B = this.bone;
+    this.legs = [
+      [B.LeftUpLeg, B.LeftLeg, B.LeftFoot],
+      [B.RightUpLeg, B.RightLeg, B.RightFoot],
+    ];
 
     // The model faces +Z; actors look down -Z at yaw 0. Shift it back so the
     // forward-leaning head sits over the hitboxes.
@@ -419,12 +447,14 @@ class SkinnedSoldier implements CharacterView {
     const s = this.slideK;
     const B = this.bone;
     const upright = Math.max(0, 1 - c - s);
-    const feet = [B.LeftFoot, B.RightFoot];
-    const footPos = feet.map((f) => f.getWorldPosition(new THREE.Vector3()));
-    const footRot = feet.map((f) => f.getWorldQuaternion(new THREE.Quaternion()));
+    const legs = this.legs;
+    for (let i = 0; i < 2; i++) {
+      legs[i][2].getWorldPosition(_footPos[i]);
+      legs[i][2].getWorldQuaternion(_footRot[i]);
+    }
     // Model-space directions in world space.
-    const fwd = new THREE.Vector3(0, 0, 1).transformDirection(this.pivot.matrixWorld);
-    const left = new THREE.Vector3(1, 0, 0).transformDirection(this.pivot.matrixWorld);
+    const fwd = _fwd.set(0, 0, 1).transformDirection(this.pivot.matrixWorld);
+    const left = _left.set(1, 0, 0).transformDirection(this.pivot.matrixWorld);
     const ground = this.root.position.y;
     const still = 1 - Math.min(1, speed / 2);
 
@@ -433,33 +463,29 @@ class SkinnedSoldier implements CharacterView {
     // Lean back into the slide (hips tilt; the spine keeps the gun level).
     B.Hips.quaternion.premultiply(_q0.setFromAxisAngle(X_AXIS, -0.75 * s));
     B.Hips.updateMatrixWorld(true);
-    const hip = B.Hips.getWorldPosition(new THREE.Vector3());
 
     // Standing still: shoulder-width stance. Crouched: stagger the feet.
     const idle = this.w.idle * upright;
-    footPos[0].addScaledVector(left, 0.07 * idle + 0.04 * c).addScaledVector(fwd, 0.16 * c * still);
-    footPos[1].addScaledVector(left, -0.07 * idle - 0.04 * c).addScaledVector(fwd, -0.14 * c * still);
+    _footPos[0].addScaledVector(left, 0.07 * idle + 0.04 * c).addScaledVector(fwd, 0.16 * c * still);
+    _footPos[1].addScaledVector(left, -0.07 * idle - 0.04 * c).addScaledVector(fwd, -0.14 * c * still);
     // Sliding: lead leg stretched out front, rear leg tucked under.
     if (s > 0) {
-      const lead = hip.clone().addScaledVector(fwd, 0.78).addScaledVector(left, 0.1);
+      const hip = B.Hips.getWorldPosition(_hip);
+      const lead = _slideFoot.copy(hip).addScaledVector(fwd, 0.78).addScaledVector(left, 0.1);
       lead.y = ground + 0.12;
-      const tuck = hip.clone().addScaledVector(fwd, -0.05).addScaledVector(left, -0.2);
+      _footPos[0].lerp(lead, s);
+      const tuck = _slideFoot.copy(hip).addScaledVector(fwd, -0.05).addScaledVector(left, -0.2);
       tuck.y = ground + 0.06;
-      footPos[0].lerp(lead, s);
-      footPos[1].lerp(tuck, s);
+      _footPos[1].lerp(tuck, s);
     }
-    const legs: [THREE.Bone, THREE.Bone, THREE.Bone][] = [
-      [B.LeftUpLeg, B.LeftLeg, B.LeftFoot],
-      [B.RightUpLeg, B.RightLeg, B.RightFoot],
-    ];
-    legs.forEach(([up, mid, foot], i) => {
-      const knee = mid.getWorldPosition(new THREE.Vector3());
-      const pole = knee.addScaledVector(fwd, 0.6).addScaledVector(left, i === 0 ? 0.15 : -0.15);
+    for (let i = 0; i < 2; i++) {
+      const [up, mid, foot] = legs[i];
+      const pole = mid.getWorldPosition(_pole).addScaledVector(fwd, 0.6).addScaledVector(left, i === 0 ? 0.15 : -0.15);
       if (s > 0 && i === 1) pole.addScaledVector(fwd, -0.3 * s).y -= 0.4 * s;
-      solveTwoBone(up, mid, foot, footPos[i], pole);
+      solveTwoBone(up, mid, foot, _footPos[i], pole);
       foot.parent!.getWorldQuaternion(_q2).invert();
-      foot.quaternion.copy(_q2.multiply(footRot[i]));
-    });
+      foot.quaternion.copy(_q2.multiply(_footRot[i]));
+    }
   }
 
   /** Locks the upper body to the aim frame and bends the spine to the aim pitch. */
@@ -467,8 +493,8 @@ class SkinnedSoldier implements CharacterView {
     const a = this.actor;
     const B = this.bone;
     // Spine world = pivot * reference, whatever the hips are doing.
-    const pivotQ = this.pivot.getWorldQuaternion(new THREE.Quaternion());
-    const want = pivotQ.clone().multiply(this.rig.spineRef);
+    const pivotQ = this.pivot.getWorldQuaternion(_pivotQ);
+    const want = _q0.copy(pivotQ).multiply(this.rig.spineRef);
     B.Hips.getWorldQuaternion(_q1).invert();
     B.Spine.quaternion.copy(_q1.multiply(want));
 
@@ -477,7 +503,7 @@ class SkinnedSoldier implements CharacterView {
     // amount), so looking down doesn't fold the body below its hitboxes.
     const pitch = -a.pitch;
     const kick = -a.kick * 0.09;
-    const axis = new THREE.Vector3(1, 0, 0).applyQuaternion(pivotQ);
+    const axis = _axis.set(1, 0, 0).applyQuaternion(pivotQ);
     turnBone(B.Spine, axis, pitch * 0.2);
     turnBone(B.Spine1, axis, pitch * 0.175 + breathe);
     turnBone(B.Spine2, axis, pitch * 0.175);
@@ -493,11 +519,9 @@ class SkinnedSoldier implements CharacterView {
     const g = this.gun;
     g.group.updateWorldMatrix(true, false);
     // Wrist sits a hand-length behind and below the palm point.
-    const wrist = g.group.localToWorld(g.fore.clone().add(new THREE.Vector3(-0.02, -0.035, 0.07)));
-    const elbow = B.LeftForeArm.getWorldPosition(new THREE.Vector3());
-    const down = new THREE.Vector3(0, -1, 0);
-    const out = new THREE.Vector3(1, 0, 0).transformDirection(this.pivot.matrixWorld);
-    const pole = elbow.addScaledVector(down, 0.3).addScaledVector(out, 0.15);
+    const wrist = g.group.localToWorld(_wrist.copy(g.fore).add(WRIST_OFFSET));
+    const out = _left.set(1, 0, 0).transformDirection(this.pivot.matrixWorld);
+    const pole = B.LeftForeArm.getWorldPosition(_pole).addScaledVector(DOWN, 0.3).addScaledVector(out, 0.15);
     solveTwoBone(B.LeftArm, B.LeftForeArm, B.LeftHand, wrist, pole);
   }
 
