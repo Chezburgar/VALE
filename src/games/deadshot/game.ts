@@ -343,6 +343,8 @@ export class Game {
     (document.activeElement as HTMLElement | null)?.blur?.();
     this.audio.resume();
     this.audio.ui('start');
+    // Fade the theme out under the loading screen rather than cutting it.
+    this.audio.menuMusic(false);
     this.input.requestLock();
     this.menu.showLoading(`Loading ${MAP_INFO[this.progress.prefs.map].name}`);
     // Let the loading screen paint before the (synchronous) build.
@@ -660,6 +662,8 @@ export class Game {
     this.hud.scoreboard(false, null, null);
     this.menu.showDeath(null, 0);
     this.audio.setMuffled(true);
+    // Results are a menu: the theme comes back (pause and death screens keep the match's sound).
+    this.audio.menuMusic(true);
     const won = match.teams ? match.winnerTeam === local.team : match.winner === local;
     const draw = match.teams && match.winnerTeam === -1;
     const seconds = (performance.now() - this.matchStartReal) / 1000;
