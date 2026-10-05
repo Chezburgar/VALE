@@ -108,6 +108,8 @@ export interface Theme {
   glow?: number;
   /** Animated water colors. */
   water?: { shallow: number; deep: number };
+  /** Ground ring from the map edge to the horizon (default: the largest ground box). */
+  backdrop?: { mat: MatId; color: number; patch?: number; y?: number };
 }
 
 export interface MapDef {

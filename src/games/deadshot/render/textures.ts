@@ -1420,6 +1420,65 @@ export function signAtlas(signs: SignSpec[], anisotropy: number): { tex: THREE.T
   return { tex, rects };
 }
 
+/**
+ * Tileable fbm value noise (256², linear data). R: broad blobs, G: medium,
+ * B: fine. Drives macro color variation, ground patches, clouds and water ripples.
+ */
+export function noiseTexture(): THREE.Texture {
+  const hit = atlasCache.get('noise');
+  if (hit) return hit;
+  const s = 256;
+  const rand = seeded(4242);
+  const fbm = (base: number, octaves: number): Float32Array => {
+    const out = new Float32Array(s * s);
+    let amp = 1;
+    for (let o = 0, cells = base; o < octaves; o++, cells *= 2, amp *= 0.5) {
+      const g = new Float32Array(cells * cells).map(() => rand());
+      const at = (x: number, y: number) => g[(y % cells) * cells + (x % cells)];
+      const k = cells / s;
+      for (let y = 0; y < s; y++) {
+        const fy = y * k;
+        const iy = Math.floor(fy);
+        const ty = (fy - iy) * (fy - iy) * (3 - 2 * (fy - iy));
+        for (let x = 0; x < s; x++) {
+          const fx = x * k;
+          const ix = Math.floor(fx);
+          const tx = (fx - ix) * (fx - ix) * (3 - 2 * (fx - ix));
+          const a = at(ix, iy) + (at(ix + 1, iy) - at(ix, iy)) * tx;
+          const b = at(ix, iy + 1) + (at(ix + 1, iy + 1) - at(ix, iy + 1)) * tx;
+          out[y * s + x] += (a + (b - a) * ty) * amp;
+        }
+      }
+    }
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const v of out) {
+      lo = Math.min(lo, v);
+      hi = Math.max(hi, v);
+    }
+    for (let i = 0; i < out.length; i++) out[i] = (out[i] - lo) / (hi - lo);
+    return out;
+  };
+  const r = fbm(4, 5);
+  const g = fbm(8, 4);
+  const b = fbm(16, 3);
+  const data = new Uint8Array(s * s * 4);
+  for (let i = 0; i < s * s; i++) {
+    data[i * 4] = Math.round(r[i] * 255);
+    data[i * 4 + 1] = Math.round(g[i] * 255);
+    data[i * 4 + 2] = Math.round(b[i] * 255);
+    data[i * 4 + 3] = 255;
+  }
+  const tex = new THREE.DataTexture(data, s, s, THREE.RGBAFormat);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  tex.needsUpdate = true;
+  atlasCache.set('noise', tex);
+  return tex;
+}
+
 export function disposeTextures(): void {
   for (const { tex } of cache.values()) tex?.dispose();
   cache.clear();
