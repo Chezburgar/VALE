@@ -1,5 +1,6 @@
 import { CATALOG, type CatalogGame } from '../catalog';
 import { actionButton, bg, onDispose, wordmark } from '../components';
+import { asset } from '../env';
 import { h, icon } from '../ui';
 import type { Nav } from '../app';
 
@@ -29,7 +30,7 @@ export function storePage(nav: Nav, query = ''): HTMLElement {
         h(
           'div',
           null,
-          h('img', { src: '/brand/vale-logo.png', alt: '' }),
+          h('img', { src: asset('brand/vale-logo.png'), alt: '' }),
           h('strong', null, 'More games coming'),
           'New titles land in the Vale store as they’re added to the catalog.',
         ),

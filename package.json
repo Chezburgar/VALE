@@ -16,15 +16,17 @@
   },
   "license": "UNLICENSED",
   "dependencies": {
-    "@fontsource/inter": "^5.3.0",
-    "@fontsource/rajdhani": "^5.3.0",
-    "three": "^0.186.1",
     "ws": "^8.22.0"
   },
   "devDependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/rajdhani": "^5.3.0",
     "@types/node": "^26.6.4",
     "@types/three": "^0.186.0",
     "@types/ws": "^8.18.2",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "three": "^0.186.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.2"
   }

@@ -299,7 +299,10 @@ export class Menu {
         el(
           'p',
           `ds-note ${this.lan.status === 'error' ? 'err' : ''}`,
-          this.lan.message || 'Start the Vale server with <code>npm start</code> on one PC, then everyone on the network connects to it.',
+          this.lan.message ||
+            (location.protocol === 'https:'
+              ? 'Online play needs the Vale desktop app or a Vale server on your network. Browsers block <code>ws://</code> from https pages, so open the server’s <code>http://</code> address instead of this site.'
+              : 'One PC hosts: turn on <b>Settings → Desktop → Host LAN games</b> in the Vale desktop app, or run <code>npm start</code>. Everyone on the network then connects to it.'),
         ),
       );
     } else {

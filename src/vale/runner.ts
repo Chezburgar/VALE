@@ -1,5 +1,6 @@
 import type { CatalogGame } from './catalog';
 import type { GameContext, GameInstance, MatchReport, ValeSettings } from '../games/types';
+import { asset, desktop, LAN_PORT } from './env';
 import { store } from './state';
 import { formatDuration, h, icon, toast } from './ui';
 
@@ -12,9 +13,12 @@ export function isRunning(): boolean {
   return running !== null;
 }
 
+// The desktop app hosts lobbies on this PC; a page served over http by the
+// Vale server (or the Vite dev proxy) reaches it on the same host. Browsers
+// block ws:// from https pages such as GitHub Pages, except to localhost.
 function defaultServerUrl(): string {
-  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${proto}//${location.host}/ws`;
+  if (!desktop && location.protocol === 'http:' && location.host) return `ws://${location.host}/ws`;
+  return `ws://localhost:${LAN_PORT}/ws`;
 }
 
 export async function launchGame(game: CatalogGame, onExit: () => void): Promise<void> {
@@ -28,7 +32,7 @@ export async function launchGame(game: CatalogGame, onExit: () => void): Promise
     h(
       'div',
       { class: 'vale-launching-inner' },
-      h('img', { src: '/brand/vale-logo.png', alt: '' }),
+      h('img', { src: asset('brand/vale-logo.png'), alt: '' }),
       h('div', { class: 'label' }, `Launching ${game.title}`),
     ),
   );
@@ -45,7 +49,7 @@ export async function launchGame(game: CatalogGame, onExit: () => void): Promise
     h(
       'div',
       { class: 'ov-top' },
-      h('img', { src: '/brand/vale-logo.png', alt: '' }),
+      h('img', { src: asset('brand/vale-logo.png'), alt: '' }),
       h('div', { class: 'ov-title' }, `${game.title} — ${game.edition}`),
       clock,
     ),
@@ -162,12 +166,18 @@ export async function launchGame(game: CatalogGame, onExit: () => void): Promise
     }
     if (document.pointerLockElement) document.exitPointerLock();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    if (fullscreen) desktop!.setFullscreen(false).catch(() => {});
     root.remove();
     document.body.classList.remove('vale-playing');
     appEl?.classList.remove('is-hidden');
     running = null;
     onExit();
   };
+
+  // Window-level fullscreen in the desktop app: unlike the Fullscreen API it
+  // doesn't drop out when the game uses Esc for its menu.
+  const fullscreen = Boolean(desktop && store.state.desktop.fullscreenGames);
+  if (fullscreen) desktop!.setFullscreen(true).catch(() => {});
 
   running = { game, root, instance: null, close };
   const entry = store.entry(game.id);

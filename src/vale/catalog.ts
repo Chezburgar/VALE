@@ -1,4 +1,5 @@
 import type { GameModule } from '../games/types';
+import { asset } from './env';
 
 export interface Achievement {
   id: string;
@@ -110,14 +111,14 @@ export const CATALOG: CatalogGame[] = [
       { id: 'lan', name: 'LAN Party', description: 'Play an online match on a Vale server.', icon: 'wifi' },
     ],
     media: {
-      hero: '/media/deadshot/hero.jpg',
-      cover: '/media/deadshot/cover.jpg',
+      hero: asset('media/deadshot/hero.jpg'),
+      cover: asset('media/deadshot/cover.jpg'),
       screenshots: [
-        '/media/deadshot/shot-1.jpg',
-        '/media/deadshot/shot-2.jpg',
-        '/media/deadshot/shot-3.jpg',
-        '/media/deadshot/shot-4.jpg',
-        '/media/deadshot/shot-5.jpg',
+        asset('media/deadshot/shot-1.jpg'),
+        asset('media/deadshot/shot-2.jpg'),
+        asset('media/deadshot/shot-3.jpg'),
+        asset('media/deadshot/shot-4.jpg'),
+        asset('media/deadshot/shot-5.jpg'),
       ],
     },
     entry: 'src/games/deadshot/index.ts',

@@ -1,6 +1,7 @@
 import { CATALOG, getGame, type CatalogGame } from './catalog';
 import { bg, pageDisposers } from './components';
 import { downloads } from './downloads';
+import { asset } from './env';
 import { gamePage } from './pages/game';
 import { libraryPage } from './pages/library';
 import { settingsPage } from './pages/settings';
@@ -116,7 +117,7 @@ export function mountApp(root: HTMLElement): void {
   const topbar = h(
     'header',
     { class: 'vale-topbar' },
-    h('div', { class: 'vale-brand', onclick: () => nav.go('/store') }, h('img', { src: '/brand/vale-logo.png', alt: '' }), h('span', null, 'VALE')),
+    h('div', { class: 'vale-brand', onclick: () => nav.go('/store') }, h('img', { src: asset('brand/vale-logo.png'), alt: '' }), h('span', null, 'VALE')),
     h(
       'nav',
       { class: 'vale-nav' },
@@ -199,7 +200,7 @@ function welcome(nav: Nav): void {
     h(
       'div',
       { class: 'modal', role: 'dialog', 'aria-modal': 'true' },
-      h('img', { class: 'modal-logo', src: '/brand/vale-logo.png', alt: '' }),
+      h('img', { class: 'modal-logo', src: asset('brand/vale-logo.png'), alt: '' }),
       h('h2', null, 'Welcome to Vale'),
       h('p', null, 'Pick a display name. It’s what other players see in matches, and you can change it any time in Settings.'),
       input,

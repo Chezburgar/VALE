@@ -1,9 +1,12 @@
 import type { CatalogGame } from './catalog';
+import { asset, desktop } from './env';
 
 // "Installing" a game downloads its code chunks and media into Cache Storage.
 // The service worker answers from those caches, so installed games launch
-// instantly and keep working offline. In dev (no build manifest) the download
-// is simulated so the flow can still be exercised.
+// instantly and keep working offline. The desktop app already ships every
+// file locally (and Cache Storage only accepts http(s) URLs), so there the
+// install just verifies the files. In dev (no build manifest) the download is
+// simulated so the flow can still be exercised.
 
 interface ManifestChunk {
   file: string;
@@ -26,7 +29,7 @@ const cacheName = (gameId: string) => `vale-game-${gameId}`;
 let manifestPromise: Promise<Manifest | null> | null = null;
 
 function loadManifest(): Promise<Manifest | null> {
-  manifestPromise ??= fetch('/vale-manifest.json', { cache: 'no-store' })
+  manifestPromise ??= fetch(asset('vale-manifest.json'), { cache: 'no-store' })
     .then((r) => (r.ok ? (r.json() as Promise<Manifest>) : null))
     .catch(() => null);
   return manifestPromise;
@@ -37,9 +40,9 @@ function collectFiles(manifest: Manifest, key: string, out: Set<string>, seen: S
   seen.add(key);
   const chunk = manifest[key];
   if (!chunk) return;
-  out.add('/' + chunk.file);
-  chunk.css?.forEach((f) => out.add('/' + f));
-  chunk.assets?.forEach((f) => out.add('/' + f));
+  out.add(asset(chunk.file));
+  chunk.css?.forEach((f) => out.add(asset(f)));
+  chunk.assets?.forEach((f) => out.add(asset(f)));
   chunk.imports?.forEach((k) => collectFiles(manifest, k, out, seen));
   chunk.dynamicImports?.forEach((k) => collectFiles(manifest, k, out, seen));
 }
@@ -74,12 +77,12 @@ export async function installGame(
   signal?: AbortSignal,
 ): Promise<number> {
   const files = await fileList(game);
-  if (!files || !('caches' in window)) {
+  if (!files || (!desktop && !('caches' in window))) {
     return simulateInstall(game, onProgress, signal);
   }
 
   // HEAD-less size estimate: fetch sequentially and grow the total as we learn sizes.
-  const cache = await caches.open(cacheName(game.id));
+  const cache = desktop ? null : await caches.open(cacheName(game.id));
   let loaded = 0;
   let total = game.approxSize;
   for (const file of files) {
@@ -90,7 +93,7 @@ export async function installGame(
         if (loaded > total) total = loaded * 1.05;
         onProgress({ loaded, total, file });
       });
-      if (res.ok) await cache.put(file, res);
+      if (res.ok) await cache?.put(file, res);
     } catch {
       /* missing optional media is fine */
     }
@@ -120,9 +123,10 @@ export async function uninstallGame(game: CatalogGame): Promise<void> {
 }
 
 export function registerServiceWorker(): void {
-  if (!('serviceWorker' in navigator) || import.meta.env.DEV) return;
+  // The desktop app serves everything from disk, so it needs no offline cache.
+  if (!('serviceWorker' in navigator) || import.meta.env.DEV || desktop) return;
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+    navigator.serviceWorker.register(asset('sw.js')).catch(() => {
       /* offline support is optional */
     });
   });

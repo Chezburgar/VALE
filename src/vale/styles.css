@@ -216,6 +216,19 @@ a {
 .vale-topbar > * {
   -webkit-app-region: no-drag;
 }
+.vale-topbar > .vale-topbar-spacer {
+  -webkit-app-region: drag;
+}
+/* Desktop app: the window controls live inside Vale's top bar. Windows and
+   Linux draw them over the right end (titleBarOverlay, which also defines the
+   titlebar-area env vars); macOS insets the traffic lights on the left. */
+body.is-desktop .vale-topbar {
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - 138px)) + 14px);
+}
+body.is-desktop.platform-darwin .vale-topbar {
+  padding-left: 92px;
+  padding-right: 20px;
+}
 .vale-brand {
   display: flex;
   align-items: center;
@@ -1687,6 +1700,99 @@ input[type='range']::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* Desktop settings: LAN hosting */
+.setting-value {
+  color: var(--text-2);
+  font-size: 13px;
+}
+.toggle.is-busy {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.lan-panel {
+  margin: 0 20px 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(135deg, rgba(33, 255, 214, 0.07), rgba(33, 255, 214, 0.02));
+  color: var(--text-2);
+  font-size: 13px;
+}
+.lan-panel.is-empty {
+  display: none;
+}
+.lan-panel p {
+  margin: 10px 0 0;
+  line-height: 1.55;
+}
+.lan-panel code,
+.lan-addr code {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 12.5px;
+  color: var(--accent);
+}
+.lan-live {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+.lan-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(33, 255, 214, 0.15), 0 0 12px var(--accent-glow);
+  animation: lan-pulse 1.8s ease-in-out infinite;
+}
+@keyframes lan-pulse {
+  50% {
+    box-shadow: 0 0 0 7px rgba(33, 255, 214, 0.05), 0 0 14px var(--accent-glow);
+  }
+}
+.lan-addrs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.lan-addr {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.lan-addr:hover {
+  border-color: var(--accent);
+}
+.lan-addr svg {
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.lan-addr.is-copied svg {
+  opacity: 1;
+}
+.lan-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--danger);
+}
+.lan-error + .lan-live {
+  margin-top: 10px;
 }
 
 @media (max-width: 1100px) {

@@ -1,3 +1,4 @@
+import { asset } from './env';
 import { h } from './ui';
 
 /** Startup screen: shows the Vale key art while the launcher warms up. */
@@ -10,7 +11,7 @@ export function showSplash(tasks: Promise<unknown>[]): Promise<void> {
     h(
       'div',
       { class: 'vale-splash-inner' },
-      h('div', { class: 'vale-splash-art' }, h('img', { src: '/brand/vale-splash.png', alt: 'Vale' })),
+      h('div', { class: 'vale-splash-art' }, h('img', { src: asset('brand/vale-splash.png'), alt: 'Vale' })),
       h('div', { class: 'vale-splash-bar' }, fill),
       status,
     ),

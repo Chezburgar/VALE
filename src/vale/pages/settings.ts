@@ -1,6 +1,7 @@
 import type { ValeSettings } from '../../games/types';
-import { DEFAULT_SETTINGS, store } from '../state';
-import { h, icon, toast } from '../ui';
+import { desktop, DESKTOP_DOWNLOAD_URL, type LanStatus, type ValeDesktop } from '../env';
+import { DEFAULT_SETTINGS, store, type DesktopPrefs } from '../state';
+import { clear, h, icon, toast } from '../ui';
 import type { Nav } from '../app';
 
 const HUES = [168, 200, 260, 300, 340, 20, 45, 120];
@@ -60,6 +61,144 @@ function seg<T extends string>(options: [T, string][], current: T, onPick: (v: T
   });
   wrap.append(...buttons);
   return wrap;
+}
+
+const PLATFORM_NAMES: Record<string, string> = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' };
+
+function desktopToggle(key: keyof DesktopPrefs): HTMLElement {
+  const el = h('button', { class: `toggle ${store.state.desktop[key] ? 'is-on' : ''}`, 'aria-label': key });
+  el.addEventListener('click', () => {
+    const next = !store.state.desktop[key];
+    store.update((s) => {
+      s.desktop = { ...s.desktop, [key]: next };
+    });
+    el.classList.toggle('is-on', next);
+  });
+  return el;
+}
+
+function copyChip(text: string): HTMLElement {
+  const chip = h('button', { class: 'lan-addr', title: 'Copy' }, h('code', null, text), icon('check', 13));
+  chip.addEventListener('click', () => {
+    navigator.clipboard
+      ?.writeText(text)
+      .then(() => {
+        chip.classList.add('is-copied');
+        setTimeout(() => chip.classList.remove('is-copied'), 1400);
+      })
+      .catch(() => {});
+  });
+  return chip;
+}
+
+/** Desktop-app-only settings: hosting LAN lobbies and fullscreen games. */
+function desktopSection(d: ValeDesktop): HTMLElement {
+  const info = h('div', { class: 'lan-panel' });
+  const lanToggle = h('button', { class: 'toggle', 'aria-label': 'Host LAN games', 'data-action': 'host-lan' });
+
+  const render = (st: LanStatus) => {
+    lanToggle.classList.toggle('is-on', st.running);
+    clear(info);
+    if (st.error) info.append(h('div', { class: 'lan-error' }, icon('x', 14), h('span', null, st.error)));
+    if (!st.running) {
+      info.classList.toggle('is-empty', !st.error);
+      return;
+    }
+    info.classList.remove('is-empty');
+    const hosts = st.addresses.length ? st.addresses : ['localhost'];
+    info.append(
+      h('div', { class: 'lan-live' }, h('span', { class: 'lan-dot' }), `Hosting on port ${st.port}`),
+      h('p', null, 'Friends on your network connect from Deadshot → Play → Online · LAN with:'),
+      h('div', { class: 'lan-addrs' }, hosts.map((a) => copyChip(`ws://${a}:${st.port}/ws`))),
+      h(
+        'p',
+        null,
+        'They can also play in a browser at ',
+        h('code', null, `http://${hosts[0]}:${st.port}`),
+        '. On this PC, connect to ',
+        h('code', null, `ws://localhost:${st.port}/ws`),
+        '. Allow Vale through your firewall if your OS asks.',
+      ),
+    );
+  };
+
+  let busy = false;
+  lanToggle.addEventListener('click', async () => {
+    if (busy) return;
+    busy = true;
+    lanToggle.classList.add('is-busy');
+    const want = !lanToggle.classList.contains('is-on');
+    try {
+      const st = await (want ? d.lan.start() : d.lan.stop());
+      store.update((s) => {
+        s.desktop = { ...s.desktop, hostLan: st.running };
+      });
+      render(st);
+      if (want && st.running) toast('LAN server started', 'Friends on your network can now join your lobbies.', { icon: 'wifi' });
+    } catch (err) {
+      render({ running: false, port: 0, addresses: [], error: String((err as Error).message ?? err) });
+    } finally {
+      busy = false;
+      lanToggle.classList.remove('is-busy');
+    }
+  });
+  d.lan
+    .status()
+    .then(render)
+    .catch(() => {});
+
+  return h(
+    'section',
+    { class: 'settings-group', id: 'set-desktop' },
+    h('h3', null, 'Desktop'),
+    row('Host LAN games from this PC', 'Runs the Vale server inside the app so friends on your network can join your Deadshot lobbies.', lanToggle),
+    info,
+    row('Launch games in fullscreen', 'Games take over the whole screen. F11 toggles fullscreen at any time.', desktopToggle('fullscreenGames')),
+    row('Version', '', h('span', { class: 'setting-value' }, `Vale ${d.version} · ${PLATFORM_NAMES[d.platform] ?? d.platform}`)),
+  );
+}
+
+/** Browser only: install Vale as a PWA. */
+function pwaInstallRow(): HTMLElement {
+  return row(
+    'Install Vale on this PC',
+    'Adds Vale to your desktop and Start menu and opens it in its own window.',
+    h(
+      'button',
+      {
+        class: 'btn btn-primary btn-sm',
+        onclick: async () => {
+          if (installPrompt) {
+            await installPrompt.prompt();
+            installPrompt = null;
+          } else {
+            toast('Install from your browser', 'Use the install icon in the address bar, or the browser menu → “Install Vale”.', { icon: 'install', duration: 6000 });
+          }
+        },
+      },
+      icon('install', 15),
+      'Install app',
+    ),
+  );
+}
+
+/** In the browser: point players at the desktop app instead. */
+function getDesktopSection(): HTMLElement {
+  return h(
+    'section',
+    { class: 'settings-group', id: 'set-desktop' },
+    h('h3', null, 'Desktop app'),
+    row(
+      'Get the desktop app',
+      'Vale for Windows, macOS and Linux. Host LAN games from your PC and play fullscreen in its own window.',
+      h(
+        'a',
+        { class: 'btn btn-primary btn-sm', href: DESKTOP_DOWNLOAD_URL, target: '_blank', rel: 'noopener', 'data-action': 'get-desktop' },
+        icon('download', 15),
+        'Download',
+      ),
+    ),
+  );
 }
 
 export function settingsPage(nav: Nav): HTMLElement {
@@ -154,6 +293,7 @@ export function settingsPage(nav: Nav): HTMLElement {
         row('Music & ambience', '', range('musicVolume', 0, 1, 0.01, (v) => `${Math.round(v * 100)}%`)),
       ),
     ],
+    ['desktop', desktop ? 'Desktop' : 'Desktop app', desktop ? desktopSection(desktop) : getDesktopSection()],
     [
       'app',
       'Vale app',
@@ -161,26 +301,7 @@ export function settingsPage(nav: Nav): HTMLElement {
         'section',
         { class: 'settings-group', id: 'set-app' },
         h('h3', null, 'Vale app'),
-        row(
-          'Install Vale on this PC',
-          'Adds Vale to your desktop and Start menu and opens it in its own window.',
-          h(
-            'button',
-            {
-              class: 'btn btn-primary btn-sm',
-              onclick: async () => {
-                if (installPrompt) {
-                  await installPrompt.prompt();
-                  installPrompt = null;
-                } else {
-                  toast('Install from your browser', 'Use the install icon in the address bar, or the browser menu → “Install Vale”.', { icon: 'install', duration: 6000 });
-                }
-              },
-            },
-            icon('install', 15),
-            'Install app',
-          ),
-        ),
+        desktop ? null : pwaInstallRow(),
         row(
           'Reset settings',
           'Restore the default controls, video and audio settings.',

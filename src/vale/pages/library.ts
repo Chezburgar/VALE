@@ -1,5 +1,6 @@
 import { CATALOG, type CatalogGame } from '../catalog';
 import { actionButton, bg, onDispose, wordmark } from '../components';
+import { asset } from '../env';
 import { downloads } from '../downloads';
 import { store } from '../state';
 import { formatBytes, formatDuration, h, icon, timeAgo } from '../ui';
@@ -15,7 +16,7 @@ export function libraryPage(nav: Nav, selectedId?: string): HTMLElement {
       h(
         'div',
         { class: 'empty' },
-        h('img', { src: '/brand/vale-logo.png', alt: '' }),
+        h('img', { src: asset('brand/vale-logo.png'), alt: '' }),
         h('h3', null, 'Your library is empty'),
         h('p', null, 'Games you install from the store show up here.'),
         h('div', { style: 'height:12px' }),

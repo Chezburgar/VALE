@@ -1,5 +1,7 @@
 // Tiny DOM helpers so the launcher can stay framework-free.
 
+import { asset } from './env';
+
 type Child = Node | string | number | null | undefined | false | Child[];
 type Props = Record<string, unknown> & {
   class?: string;
@@ -118,7 +120,7 @@ export function toast(
   const el = h(
     'div',
     { class: `vale-toast ${opts.kind === 'achievement' ? 'is-achievement' : ''}` },
-    h('div', { class: 'vale-toast-icon' }, opts.icon ? icon(opts.icon, 22) : h('img', { src: '/brand/vale-logo.png', alt: '' })),
+    h('div', { class: 'vale-toast-icon' }, opts.icon ? icon(opts.icon, 22) : h('img', { src: asset('brand/vale-logo.png'), alt: '' })),
     h('div', { class: 'vale-toast-text' }, h('div', { class: 'vale-toast-title' }, title), body ? h('div', { class: 'vale-toast-body' }, body) : null),
   );
   toastHost.appendChild(el);

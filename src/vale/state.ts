@@ -40,6 +40,14 @@ export interface ValeState {
   achievements: Record<string, Record<string, number>>;
   progress: Record<string, unknown>;
   wishlist: string[];
+  /** Desktop-app-only preferences (ignored in the browser). */
+  desktop: DesktopPrefs;
+}
+
+export interface DesktopPrefs {
+  /** Start the LAN server whenever the desktop app opens. */
+  hostLan: boolean;
+  fullscreenGames: boolean;
 }
 
 const KEY = 'vale:state:v1';
@@ -70,6 +78,7 @@ function defaultState(): ValeState {
     achievements: {},
     progress: {},
     wishlist: [],
+    desktop: { hostLan: false, fullscreenGames: true },
   };
 }
 
@@ -102,6 +111,7 @@ function load(): ValeState {
       ...parsed,
       profile: { ...base.profile, ...parsed.profile },
       settings: { ...base.settings, ...parsed.settings },
+      desktop: { ...base.desktop, ...parsed.desktop },
     } as ValeState;
   } catch {
     return defaultState();
