@@ -79,6 +79,8 @@ export const MODEL_SCALE = 1.1;
 /** Hip drop (model units) for crouching and sliding. */
 const CROUCH_DROP = 0.47;
 const SLIDE_DROP = 0.55;
+/** How far ahead of the body centre the head may sit (m) before the hips move back. */
+const HEAD_LEAN_OK = 0.03;
 /** Natural ground speed of each gait at timeScale 1 (m/s). */
 const GAIT_SPEED: Record<string, number> = { run: 4.6, back: 1.6, strafeL: 1.7, strafeR: 1.7 };
 const LOCO = ['idle', 'run', 'back', 'strafeL', 'strafeR', 'air'] as const;
@@ -251,6 +253,9 @@ class SkinnedSoldier implements CharacterView {
   private dead = false;
   private crouchK = 0;
   private slideK = 0;
+  /** How far the hips are pushed back (m) to keep a leaning head over the head hitbox. */
+  private hipShift = 0;
+  private hipShiftWant = 0;
 
   constructor(
     private actor: Actor,
@@ -405,10 +410,11 @@ class SkinnedSoldier implements CharacterView {
     this.crouchK += ((a.stance === 'crouch' ? 1 : 0) - this.crouchK) * Math.min(1, dt * 12);
     this.slideK += ((sliding ? 1 : 0) - this.slideK) * Math.min(1, dt * 12);
     this.root.updateMatrixWorld(true);
-    this.poseLegs(speed);
+    this.poseLegs(speed, dt);
     this.poseSpine(time, speed);
     this.animateGun();
     this.poseLeftArm();
+    this.measureLean();
 
     // Hit flash / spawn shimmer. The shimmer pulses in the team colour: a
     // white glow would wash the tinted camo out to a plain white figure.
@@ -442,7 +448,7 @@ class SkinnedSoldier implements CharacterView {
    * the feet. Low tactical gaits are lifted part of the way to the idle
    * height so the head stays inside the head hitbox while moving.
    */
-  private poseLegs(speed: number): void {
+  private poseLegs(speed: number, dt: number): void {
     const c = this.crouchK;
     const s = this.slideK;
     const B = this.bone;
@@ -460,6 +466,8 @@ class SkinnedSoldier implements CharacterView {
 
     const lift = Math.max(0, this.rig.idleHipsY - B.Hips.position.y) * 0.6 * upright;
     B.Hips.position.y += lift - c * CROUCH_DROP - s * SLIDE_DROP;
+    this.hipShift += (this.hipShiftWant - this.hipShift) * Math.min(1, dt * 10);
+    B.Hips.position.z -= this.hipShift / MODEL_SCALE;
     // Lean back into the slide (hips tilt; the spine keeps the gun level).
     B.Hips.quaternion.premultiply(_q0.setFromAxisAngle(X_AXIS, -0.75 * s));
     B.Hips.updateMatrixWorld(true);
@@ -499,18 +507,35 @@ class SkinnedSoldier implements CharacterView {
     B.Spine.quaternion.copy(_q1.multiply(want));
 
     const breathe = Math.sin(time * 1.9 + a.id) * 0.012 * (1 - Math.min(1, speed / 3));
-    // Pitch is shared by the spine and the shoulder (the gun turns the full
-    // amount), so looking down doesn't fold the body below its hitboxes.
+    // Pitch is shared by the spine and the shoulders (the gun and the head
+    // turn the full amount). Looking down leans on the shoulders more, so
+    // the head doesn't swing forward out of its hitbox.
     const pitch = -a.pitch;
+    const bend = pitch > 0 ? 0.3 : 0.55;
+    const rest = 1 - bend;
     const kick = -a.kick * 0.09;
     const axis = _axis.set(1, 0, 0).applyQuaternion(pivotQ);
-    turnBone(B.Spine, axis, pitch * 0.2);
-    turnBone(B.Spine1, axis, pitch * 0.175 + breathe);
-    turnBone(B.Spine2, axis, pitch * 0.175);
-    turnBone(B.RightArm, axis, pitch * 0.45 + kick);
-    turnBone(B.LeftArm, axis, pitch * 0.45);
-    turnBone(B.Neck, axis, pitch * 0.25);
-    turnBone(B.Head, axis, pitch * 0.2);
+    turnBone(B.Spine, axis, pitch * bend * 0.36);
+    turnBone(B.Spine1, axis, pitch * bend * 0.32 + breathe);
+    turnBone(B.Spine2, axis, pitch * bend * 0.32);
+    turnBone(B.RightArm, axis, pitch * rest + kick);
+    turnBone(B.LeftArm, axis, pitch * rest);
+    turnBone(B.Neck, axis, pitch * rest * 0.55);
+    turnBone(B.Head, axis, pitch * rest * 0.45);
+  }
+
+  /**
+   * Leaning over the gun (crouching, aiming down) carries the head forward
+   * out of its hitbox, which is centred on the body. Measure how far it went,
+   * without the current correction, and push the hips back by that much on
+   * the next frame; the leg IK keeps the feet planted.
+   */
+  private measureLean(): void {
+    const a = this.actor;
+    // Centre of the skull: halfway from the head joint to the top of the head.
+    const head = this.bone.Head.getWorldPosition(_v0).add(this.bone.HeadTop_End.getWorldPosition(_v1)).multiplyScalar(0.5);
+    const lean = -(head.x - a.body.x) * Math.sin(a.yaw) - (head.z - a.body.z) * Math.cos(a.yaw) + this.hipShift;
+    this.hipShiftWant = THREE.MathUtils.clamp(lean - HEAD_LEAN_OK, 0, 0.35);
   }
 
   /** Left hand onto the fore-grip. */
@@ -584,6 +609,7 @@ class SkinnedSoldier implements CharacterView {
     }
     this.aim.setEffectiveWeight(1);
     this.crouchK = this.slideK = 0;
+    this.hipShift = this.hipShiftWant = 0;
   }
 
   muzzleWorld(out: THREE.Vector3): THREE.Vector3 {
