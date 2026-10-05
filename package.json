@@ -15,6 +15,7 @@
   },
   "type": "module",
   "main": "electron/main.js",
+  "desktopName": "vale.desktop",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -125,8 +126,9 @@
         "deb"
       ],
       "category": "Game",
-      "icon": "build/icon.png",
+      "icon": "build/icons",
       "executableName": "vale",
+      "syncDesktopName": true,
       "synopsis": "Game store and launcher",
       "maintainer": "Chezburgar <chezburgar@users.noreply.github.com>"
     },

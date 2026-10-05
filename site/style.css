@@ -613,7 +613,7 @@ h2 {
   right: 0;
   width: min(60%, 1000px);
   height: 640px;
-  background: url('media/deadshot/cover.jpg') 85% 30% / cover no-repeat;
+  background: url('media/deadshot/cover.jpg') 30% 30% / cover no-repeat;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%), linear-gradient(180deg, transparent, #000 15%, #000 45%, transparent);
   -webkit-mask-composite: source-in;
   mask-image: linear-gradient(90deg, transparent, #000 45%), linear-gradient(180deg, transparent, #000 15%, #000 45%, transparent);
@@ -983,7 +983,10 @@ h2 {
     border-radius: 10px;
   }
   .hero-art {
-    width: min(72%, 260px);
+    width: min(56%, 200px);
+  }
+  .hero-inner {
+    gap: 32px;
   }
   .lead {
     font-size: 16px;

@@ -1496,6 +1496,21 @@ input[type='range']::-moz-range-thumb {
   z-index: 100;
   background: #000;
 }
+/* Desktop app in a window: keep games clear of the overlaid window controls
+   behind a draggable strip. The titlebar area is empty in fullscreen, so
+   games then fill the screen. */
+body.is-desktop .vale-runner {
+  top: env(titlebar-area-height, 0px);
+}
+body.is-desktop.vale-playing::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(titlebar-area-height, 0px);
+  background: var(--bg);
+  -webkit-app-region: drag;
+  z-index: 100;
+}
 .vale-runner-host {
   position: absolute;
   inset: 0;

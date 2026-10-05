@@ -5,6 +5,7 @@
 Outputs (committed, so packaging needs no Python):
   icon.png                 1024x1024 app icon (macOS / Linux), Apple-grid padding
   icon.ico                 16-256 px Windows icon (tighter crop for small sizes)
+  icons/NxN.png            16-512 px Linux icon set (hicolor theme sizes)
   installerSidebar.bmp     164x314 NSIS welcome/finish page art (24-bit)
   uninstallerSidebar.bmp   164x314 NSIS uninstaller art (24-bit)
   installerHeader.bmp      150x57 NSIS page header art (24-bit)
@@ -125,6 +126,11 @@ def main():
     ico_sizes = [16, 24, 32, 48, 64, 128, 256]
     frames = [app_icon(s, 0 if s <= 32 else round(s * 0.03), round(s * 0.2)) for s in ico_sizes]
     frames[-1].save(OUT / 'icon.ico', format='ICO', sizes=[(s, s) for s in ico_sizes], append_images=frames[:-1])
+
+    # Linux: one PNG per hicolor size so every desktop finds a sharp icon.
+    (OUT / 'icons').mkdir(exist_ok=True)
+    for s in [16, 24, 32, 48, 64, 128, 256, 512]:
+        app_icon(s, 0 if s <= 32 else round(s * 0.04), round(s * 0.2)).save(OUT / 'icons' / f'{s}x{s}.png')
 
     sidebar().save(OUT / 'installerSidebar.bmp')
     sidebar(dim=0.8).save(OUT / 'uninstallerSidebar.bmp')
