@@ -27,7 +27,7 @@
  *   Fences      fence [C|V] (chain, wood, boards, picket, rail)
  *   Nature      tree [C trunk] (pine, oak, birch, dead, snowpine) · bush [V] · rockCluster [C]
  *               logPile [C] · snowCap [V] · grassPatch [V, instanced]
- *   Vehicles    truck [C] · van [C] · forklift [C] · car [C]
+ *   Vehicles    truck [C] (box, flatbed, tanker; any length) · van [C] · forklift [C] · car [C]
  *   Ground      puddle / oil / decal helpers are on the builder: b.decal, b.ribbon (paths, lines)
  *
  * Builder primitives (maps/builder.ts) used by these helpers and available directly:
@@ -996,15 +996,23 @@ export function grassPatch(b: MapBuilder, x0: number, z0: number, x1: number, z1
 // ---------------------------------------------------------------------------
 // Vehicles (colliders are axis-aligned: use dir)
 
-/** [C] Box truck (~7.4 x 2.5 x 3.3 m) or 'flatbed' / 'tanker'; cab faces `dir`. */
-export function truck(b: MapBuilder, x: number, z: number, o: { dir?: Dir; color?: number; cargo?: number; kind?: 'box' | 'flatbed' | 'tanker'; y?: number; collide?: boolean } = {}): void {
+/**
+ * [C] Box truck (~7.4 x 2.5 x 3.3 m) or 'flatbed' / 'tanker'; cab faces `dir`.
+ * `len` sets the cargo body length (default 4.9 m; ~8 for a semi trailer). The cab
+ * spans local z 1.5..3.4 and the body ends at local z 1.25 - len.
+ */
+export function truck(b: MapBuilder, x: number, z: number, o: { dir?: Dir; color?: number; cargo?: number; kind?: 'box' | 'flatbed' | 'tanker'; y?: number; collide?: boolean; len?: number } = {}): void {
   const f = new Frame(b, x, z, dirRot(o.dir ?? 'N'), o.y ?? 0);
   const c = o.color ?? 0xd8d4cc;
   const cargo = o.cargo ?? 0xe8e6e0;
   const kind = o.kind ?? 'box';
+  const len = o.len ?? 4.9;
+  const bz = 1.25 - len / 2;
+  const back = 1.25 - len;
   // chassis + wheels (front = +Z local)
-  f.box(0, 0.45, -0.4, 1.9, 0.3, 6.6, 0x2a2c2e, 'steel');
-  for (const lz of [2.3, -1.4, -2.6]) for (const sx of [-1, 1]) wheel(f, sx * 1.02, lz, 0.5, 0.36);
+  f.box(0, 0.45, (3.3 + back) / 2, 1.9, 0.3, 3.3 - back, 0x2a2c2e, 'steel');
+  for (const lz of [2.3, back + 2.4, back + 1.2]) for (const sx of [-1, 1]) wheel(f, sx * 1.02, lz, 0.5, 0.36);
+  for (const sx of [-1, 1]) f.box(sx * 1.1, 0.55, back + 1.8, 0.06, 0.5, 2.6, 0x2a2c2e, 'steel', { ao: false });
   // cab
   f.box(0, 0.75, 2.45, 2.3, 1.15, 1.9, c, 'steel');
   f.box(0, 1.9, 2.3, 2.3, 1.05, 1.6, c, 'steel', { ao: false });
@@ -1014,24 +1022,27 @@ export function truck(b: MapBuilder, x: number, z: number, o: { dir?: Dir; color
   for (const sx of [-0.85, 0.85]) f.emissive(sx, 1.0, 3.405, 0.32, 0.16, 0.02, 0xfff4d8);
   f.box(0, 0.95, 3.405, 1.0, 0.38, 0.02, 0x2a2d30, 'steel', { ao: false });
   for (const sx of [-1, 1]) f.box(sx * 1.3, 2.0, 3.0, 0.06, 0.32, 0.18, 0x2a2c2e, 'steel', { ao: false });
+  f.box(0, 0.75, 1.42, 2.1, 0.5, 0.25, 0x2a2c2e, 'steel', { ao: false });
   // body
   if (kind === 'box') {
-    f.box(0, 0.75, -1.2, 2.44, 2.55, 4.9, cargo, 'steel');
-    f.box(0, 3.3, -1.2, 2.46, 0.06, 4.92, shade(cargo, 0.85), 'steel', { ao: false });
-    f.box(0, 0.8, -3.66, 2.3, 2.4, 0.03, shade(cargo, 0.88), 'steel', { ao: false });
-    f.box(0, 0.8, -3.68, 0.03, 2.4, 0.02, 0x3a3d40, 'plain', { ao: false });
+    f.box(0, 0.75, bz, 2.44, 2.55, len, cargo, 'steel');
+    f.box(0, 3.3, bz, 2.46, 0.06, len + 0.02, shade(cargo, 0.85), 'steel', { ao: false });
+    for (const sx of [-1, 1]) f.box(sx * 1.225, 0.8, bz, 0.02, 0.1, len - 0.1, shade(cargo, 0.7), 'steel', { ao: false });
+    f.box(0, 0.8, back - 0.015, 2.3, 2.4, 0.03, shade(cargo, 0.88), 'steel', { ao: false });
+    f.box(0, 0.8, back - 0.035, 0.03, 2.4, 0.02, 0x3a3d40, 'plain', { ao: false });
+    for (const sx of [-0.9, 0.9]) f.emissive(sx, 0.85, back - 0.03, 0.2, 0.12, 0.02, 0xc8302a);
   } else if (kind === 'flatbed') {
-    f.box(0, 0.75, -1.2, 2.44, 0.18, 4.9, 0x5a4c3e, 'wood');
-    f.box(0, 0.93, -0.6, 1.2, 1.0, 1.0, 0xb08850, 'crate', { rotY: 0.05 });
-    f.box(0.1, 0.93, -2.0, 1.1, 1.1, 1.1, 0xa07a48, 'crate', { rotY: -0.08 });
+    f.box(0, 0.75, bz, 2.44, 0.18, len, 0x5a4c3e, 'wood');
+    f.box(0, 0.93, bz + 0.6, 1.2, 1.0, 1.0, 0xb08850, 'crate', { rotY: 0.05 });
+    f.box(0.1, 0.93, bz - 0.8, 1.1, 1.1, 1.1, 0xa07a48, 'crate', { rotY: -0.08 });
   } else {
-    f.hcyl(0, 1.95, -3.6, 'z', 4.8, 1.12, cargo, 'steel', 18);
-    f.box(0, 0.75, -1.2, 1.6, 0.5, 4.6, 0x3a3d40, 'steel');
-    f.box(0, 3.05, -1.2, 0.5, 0.12, 3.8, 0x5a5f63, 'steel', { ao: false });
+    f.hcyl(0, 1.95, back + 0.05, 'z', len - 0.1, 1.12, cargo, 'steel', 18);
+    f.box(0, 0.75, bz, 1.6, 0.5, len - 0.3, 0x3a3d40, 'steel');
+    f.box(0, 3.05, bz, 0.5, 0.12, len - 1.1, 0x5a5f63, 'steel', { ao: false });
   }
   if (o.collide ?? true) {
     f.solid(0, 0, 2.45, 2.3, 2.95, 1.95);
-    f.solid(0, 0, -1.2, 2.46, kind === 'flatbed' ? 2.0 : 3.3, 4.92);
+    f.solid(0, 0, bz, 2.46, kind === 'flatbed' ? 2.0 : 3.3, len + 0.02);
   }
 }
 

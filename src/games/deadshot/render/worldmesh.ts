@@ -859,7 +859,7 @@ float worldAO(vec3 wp, vec3 wn) {
   float y = wp.y - 0.06;
   float nearH = hm.r * 25.5 - 2.0 - y;
   float farH = hm.g * 25.5 - 2.0 - y;
-  float o = 1.0 - (1.0 - clamp(nearH * 0.6, 0.0, 1.0) * uAOStr.x) * (1.0 - clamp(farH * 0.22, 0.0, 1.0) * uAOStr.y);
+  float o = 1.0 - (1.0 - clamp(nearH * 0.85, 0.0, 1.0) * uAOStr.x) * (1.0 - clamp(farH * 0.3, 0.0, 1.0) * uAOStr.y);
   return clamp(o, 0.0, uAOStr.z);
 }`;
 
@@ -960,7 +960,7 @@ function patchWorld(m: THREE.Material, sh: Shared, o: PatchOpts): void {
         {
           float occ = worldAO(vWP, normalize(vWN));
           reflectedLight.indirectDiffuse *= 1.0 - occ;
-          reflectedLight.directDiffuse *= 1.0 - occ * 0.35;
+          reflectedLight.directDiffuse *= 1.0 - occ * 0.45;
         }
         #endif`,
       );
@@ -1112,9 +1112,9 @@ function makeSky(theme: Theme, sh: Shared, detail: boolean): THREE.Mesh {
         col = mix(col, horizon * 1.05, exp(-abs(y) * 16.0) * 0.5);
         float dens = 0.0;
         if (y > 0.0 && cover > 0.0) {
-          vec2 p = d.xz / (y + 0.1) * 0.055 * cscale + vec2(uTime * 0.0016, uTime * 0.0007) * cspeed;
+          vec2 p = d.xz / (y + 0.12) * 0.2 * cscale + vec2(uTime * 0.004, uTime * 0.0017) * cspeed;
           float n = clouds(p);
-          dens = smoothstep(1.0 - cover, 1.0 - cover + 0.3, n) * smoothstep(0.0, 0.2, y);
+          dens = smoothstep(1.0 - cover, 1.0 - cover + 0.32, n) * smoothstep(0.0, 0.1, y);
           float lit = 0.7;
           #ifdef CLOUD_SHADE
           float nl = clouds(p + sunDir.xz * 0.025);
@@ -1183,6 +1183,8 @@ function glowMaterial(glow: number): THREE.ShaderMaterial {
 export interface WorldVisuals {
   group: THREE.Group;
   sky: THREE.Mesh;
+  /** Baked AO strength (near, far, max); live-tweakable for debugging. */
+  ao: THREE.Vector3;
   update(dt: number, camera: THREE.Camera): void;
   dispose(): void;
 }
@@ -1201,7 +1203,7 @@ export function buildWorld(map: MapDef, anisotropy: number, shadows: boolean, pa
     uMacro: { value: noiseTexture() },
     uAOMap: { value: null },
     uAOBox: { value: new THREE.Vector4() },
-    uAOStr: { value: new THREE.Vector3(0.55, 0.42, 0.62) },
+    uAOStr: { value: new THREE.Vector3(0.72, 0.5, 0.72) },
     ao: detail,
   };
   if (detail) {
@@ -1317,11 +1319,12 @@ export function buildWorld(map: MapDef, anisotropy: number, shadows: boolean, pa
       else shape.lineTo(Math.cos(a) * R, Math.sin(a) * R);
     }
     const e = 0.05;
+    const [hx0, hz0, hx1, hz1] = ground.hole ?? [b.minX, b.minZ, b.maxX, b.maxZ];
     const hole = new THREE.Path();
-    hole.moveTo(b.minX + e, -b.maxZ + e);
-    hole.lineTo(b.minX + e, -b.minZ - e);
-    hole.lineTo(b.maxX - e, -b.minZ - e);
-    hole.lineTo(b.maxX - e, -b.maxZ + e);
+    hole.moveTo(hx0 + e, -hz1 + e);
+    hole.lineTo(hx0 + e, -hz0 - e);
+    hole.lineTo(hx1 - e, -hz0 - e);
+    hole.lineTo(hx1 - e, -hz1 + e);
     hole.closePath();
     shape.holes.push(hole);
     const sg = new THREE.ShapeGeometry(shape, 4).toNonIndexed();
@@ -1482,6 +1485,7 @@ export function buildWorld(map: MapDef, anisotropy: number, shadows: boolean, pa
   return {
     group,
     sky,
+    ao: sh.uAOStr.value,
     update(dt: number, camera: THREE.Camera) {
       t += dt;
       sh.uTime.value = t;

@@ -108,8 +108,12 @@ export interface Theme {
   glow?: number;
   /** Animated water colors. */
   water?: { shallow: number; deep: number };
-  /** Ground ring from the map edge to the horizon (default: the largest ground box). */
-  backdrop?: { mat: MatId; color: number; patch?: number; y?: number };
+  /**
+   * Ground ring from the map edge to the horizon (default: the largest ground box).
+   * `hole` overrides the cut-out [minX, minZ, maxX, maxZ] (default: the map bounds),
+   * e.g. when visual-only ground extends past the bounds.
+   */
+  backdrop?: { mat: MatId; color: number; patch?: number; y?: number; hole?: [number, number, number, number] };
 }
 
 export interface MapDef {
@@ -313,6 +317,8 @@ export class MapBuilder {
     windows?: { side: Dir; at: number; w?: number; bottom?: number; top?: number }[];
     roof?: 'flat' | 'access' | 'none' | 'pitched';
     roofColor?: number;
+    /** Visual material of a pitched roof (default 'wood'). */
+    roofMat?: MatId;
     parapet?: number;
   }): void {
     const t = o.t ?? 0.35;
@@ -342,7 +348,7 @@ export class MapBuilder {
       const cz = (z0 + z1) / 2;
       const w = x1 - x0 + 0.8;
       const d = z1 - z0 + 0.8;
-      this.prop({ kind: 'prism', x: cx, y: y + o.h, z: cz, r: w, h: Math.min(w, d) * 0.42, d, color: roofC, mat: 'wood', axis: w >= d ? 'x' : 'z' });
+      this.prop({ kind: 'prism', x: cx, y: y + o.h, z: cz, r: w >= d ? w : d, h: Math.min(w, d) * 0.42, d: w >= d ? d : w, color: roofC, mat: o.roofMat ?? 'wood', axis: w >= d ? 'x' : 'z' });
     } else if (roof === 'access') {
       // Stairs along the inside of the west wall climbing north, with a hatch above the top steps.
       // The hatch is wider than the stairs so a 1m nav column always has headroom.
@@ -396,14 +402,31 @@ export class MapBuilder {
     this.props.push({ ...p, x, z, rotY, pts });
   }
 
-  /** Flat ground decal centered at (x, z), w along local X, d along local Z. */
+  /**
+   * Flat ground decal centered at (x, z), w along local X, d along local Z (texture
+   * top / arrow tip toward local +Z, rotated by `rot`). `y` defaults to the
+   * ground-level surface under the center (tops at or below 0.5 m).
+   */
   decal(tex: DecalId, x: number, z: number, w: number, d: number, o: { rot?: number; y?: number; color?: number } = {}): void {
-    this.prop({ kind: 'decal', tex, x, y: o.y ?? 0, z, r: w, h: 0, d, rotY: o.rot ?? 0, color: o.color ?? 0xffffff });
+    this.prop({ kind: 'decal', tex, x, y: o.y ?? this.groundAt(x, z, 0.5).y, z, r: w, h: 0, d, rotY: o.rot ?? 0, color: o.color ?? 0xffffff });
   }
 
-  /** Strip of `width` meters following the polyline `pts` ([x, z]); the texture tiles along it. */
+  /**
+   * Flat strip of `width` meters following the polyline `pts` ([x, z]); the texture
+   * tiles along it. `y` defaults to the highest ground-level surface along the line.
+   */
   ribbon(tex: RibbonId, pts: [number, number][], width: number, o: { y?: number; color?: number } = {}): void {
-    this.prop({ kind: 'ribbon', tex, x: 0, y: o.y ?? 0, z: 0, r: width, h: 0, pts, color: o.color ?? 0xffffff });
+    let y = o.y;
+    if (y === undefined) {
+      y = -Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        const [ax, az] = pts[i];
+        const [bx, bz] = pts[Math.min(pts.length - 1, i + 1)];
+        const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az)));
+        for (let k = 0; k <= n; k++) y = Math.max(y, this.groundAt(ax + ((bx - ax) * k) / n, az + ((bz - az) * k) / n, 0.5).y);
+      }
+    }
+    this.prop({ kind: 'ribbon', tex, x: 0, y, z: 0, r: width, h: 0, pts, color: o.color ?? 0xffffff });
   }
 
   /**

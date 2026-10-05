@@ -160,19 +160,11 @@ const DRAW: Partial<Record<MatId, [number, Draw, number?]>> = {
       speckle(c, s, r, 5200, 60, 120, 0.5, 1.4, 0.55);
       speckle(c, s, r, 2600, 190, 240, 0.4, 1.1, 0.5);
       noise(c, s, r, 30);
-      // repair patches
-      for (let i = 0; i < 2; i++) {
-        const w = s * (0.15 + r() * 0.2);
-        const h = s * (0.1 + r() * 0.2);
-        const x = r() * s;
-        const y = r() * s;
-        c.fillStyle = 'rgba(0,0,0,0.12)';
-        wrap(s, (ox, oy) => c.fillRect(x + ox, y + oy, w, h));
-        c.strokeStyle = 'rgba(0,0,0,0.25)';
-        wrap(s, (ox, oy) => c.strokeRect(x + ox, y + oy, w, h));
-      }
-      blotches(c, s, r, 14, 0.14);
-      cracks(c, s, r, 5, 18, 9, 0.3);
+      blotches(c, s, r, 14, 0.1);
+      blotches(c, s, r, 8, 0.06, false);
+      cracks(c, s, r, 4, 16, 8, 0.22);
+      // tar-sealed crack lines
+      cracks(c, s, r, 2, 30, 9, 0.12, 3);
     },
   ],
   metal: [
