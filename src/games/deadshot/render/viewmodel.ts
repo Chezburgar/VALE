@@ -360,9 +360,18 @@ export class ViewModel {
     if (a.reloading) {
       const p = 1 - a.reloadLeft / def.reloadTime;
       const inOut = p < 0.15 ? p / 0.15 : p > 0.85 ? (1 - p) / 0.15 : 1;
-      tilt = 0.55 * inOut;
-      pitch = -0.35 * inOut;
-      dip = 0.06 * inOut;
+      if (gun.glb) {
+        // Rolled toward the camera and lifted so the magazine well and the
+        // left hand working it stay in view.
+        tilt = -0.5 * inOut;
+        pitch = 0.2 * inOut;
+        dip = -0.03 * inOut;
+        pos.x -= 0.06 * inOut;
+      } else {
+        tilt = 0.55 * inOut;
+        pitch = -0.35 * inOut;
+        dip = 0.06 * inOut;
+      }
       const magOut = p > 0.18 && p < 0.7 ? Math.sin(((p - 0.18) / 0.52) * Math.PI) : 0;
       if (gun.mag) gun.mag.position.y -= magOut * 0.22;
       if (gun.glb) {
