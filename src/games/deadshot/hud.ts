@@ -392,6 +392,19 @@ export class Hud {
     this.board.innerHTML = html;
   }
 
+  /** Drops everything a match left on screen so the next one starts clean. */
+  reset(): void {
+    this.closeChat();
+    this.scoreboard(false, null, null);
+    for (const box of [this.dmgWrap, this.feed, this.medals, this.center, this.chatLog]) box.replaceChildren();
+    this.hit.className = 'ds-hit';
+    this.scope.classList.remove('on');
+    this.protect.style.display = 'none';
+    this.reloadBar.style.display = 'none';
+    this.vignette.style.opacity = '0';
+    this.last = {};
+  }
+
   dispose(): void {
     this.root.remove();
   }
