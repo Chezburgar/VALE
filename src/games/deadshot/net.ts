@@ -142,7 +142,8 @@ export class NetClient {
       t: 'shot',
       c: CLASSES.indexOf(cls),
       o: origin.map((v) => round(v)),
-      e: traces.map((tr) => [round(tr.ex), round(tr.ey), round(tr.ez), tr.hitWorld ? 1 : 0, tr.nx, tr.ny, tr.nz]),
+      // 1 = world hit with a bullet hole, 2 = world hit on an invisible collider.
+      e: traces.map((tr) => [round(tr.ex), round(tr.ey), round(tr.ez), tr.hitWorld ? (tr.decal ? 1 : 2) : 0, tr.nx, tr.ny, tr.nz]),
     });
   }
 
@@ -300,7 +301,7 @@ export class NetClient {
         a.lastShotTime = g.match.time;
         a.classId = CLASSES[msg.c as number] ?? a.classId;
         const [ox, oy, oz] = msg.o as number[];
-        const traces: ShotTrace[] = (msg.e as number[][]).map(([ex, ey, ez, w, nx, ny, nz]) => ({ ex, ey, ez, nx, ny, nz, hitWorld: w === 1, hitActor: null, part: null }));
+        const traces: ShotTrace[] = (msg.e as number[][]).map(([ex, ey, ez, w, nx, ny, nz]) => ({ ex, ey, ez, nx, ny, nz, hitWorld: w > 0, decal: w === 1, hitActor: null, part: null }));
         g.netEvent({ type: 'shot', actor: a, req: { ox, oy, oz, dirs: [] }, traces });
         break;
       }

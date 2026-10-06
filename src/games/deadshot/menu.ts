@@ -131,7 +131,8 @@ export class Menu {
       this.tabs.set(id, b);
       nav.append(b);
     }
-    const exit = el('button', 'ds-btn ds-btn-ghost ds-exit', '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11"/></svg> Exit to Vale');
+    const exit = el('button', 'ds-btn ds-btn-ghost ds-exit', '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11"/></svg><span>Exit to Vale</span>');
+    exit.title = 'Exit to Vale';
     exit.addEventListener('click', () => this.h.exit());
     top.append(logo, nav, el('div', 'ds-spacer'), this.playerCard, exit);
     this.root.append(el('div', 'ds-menu-shade'), top, this.content);
@@ -475,7 +476,10 @@ export class Menu {
     panel.append(settings);
     const leave = el('button', 'ds-btn ds-btn-ghost', 'Leave match');
     leave.addEventListener('click', () => this.h.leave());
-    panel.append(leave);
+    // Pinned to the bottom so it stays reachable while the settings scroll.
+    const foot = el('div', 'ds-panel-foot');
+    foot.append(leave);
+    panel.append(foot);
     this.pause.append(panel);
   }
 

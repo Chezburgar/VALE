@@ -24,6 +24,8 @@ export interface ShotTrace {
   hitActor: Actor | null;
   part: HitPart | null;
   hitWorld: boolean;
+  /** The surface hit is drawn as a box (not an invisible collider around a round prop), so a bullet hole fits. */
+  decal: boolean;
 }
 
 export type MatchEvent =
@@ -255,6 +257,7 @@ export class Match {
         hitActor,
         part: hitPart,
         hitWorld: !hitActor && wall !== null,
+        decal: !hitActor && wall !== null && wall.box !== null && wall.box.visible,
       });
       if (hitActor && hitPart) {
         anyHit = true;

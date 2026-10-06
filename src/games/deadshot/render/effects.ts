@@ -55,6 +55,8 @@ export class Effects {
   private glow = glowTexture();
   private time = 0;
   private disposables: { dispose(): void }[] = [];
+  /** Objective markers belong to one match; clear() releases them. */
+  private matchDisposables: { dispose(): void }[] = [];
 
   constructor(scene: THREE.Scene) {
     scene.add(this.group);
@@ -125,14 +127,16 @@ export class Effects {
     f.sprite.visible = true;
   }
 
-  impact(x: number, y: number, z: number, nx: number, ny: number, nz: number, kind: 'world' | 'flesh'): void {
+  /** `decal` is false for hits on invisible prop colliders, where a bullet hole would float in the air. */
+  impact(x: number, y: number, z: number, nx: number, ny: number, nz: number, kind: 'world' | 'flesh', decal = true): void {
     if (kind === 'world') {
-      // decal
-      const d = this.decals[this.decalIdx++ % this.decals.length];
-      d.position.set(x + nx * 0.01, y + ny * 0.01, z + nz * 0.01);
-      d.lookAt(x + nx, y + ny, z + nz);
-      d.rotation.z = Math.random() * Math.PI;
-      d.visible = true;
+      if (decal) {
+        const d = this.decals[this.decalIdx++ % this.decals.length];
+        d.position.set(x + nx * 0.01, y + ny * 0.01, z + nz * 0.01);
+        d.lookAt(x + nx, y + ny, z + nz);
+        d.rotation.z = Math.random() * Math.PI;
+        d.visible = true;
+      }
       this.spawnSparks(x, y, z, nx, ny, nz, 6, [1, 0.8, 0.45], 5);
       this.puff(x + nx * 0.1, y + ny * 0.1, z + nz * 0.1, 0x9a9184, 0.25, 0.9, 0.5);
     } else {
@@ -234,7 +238,8 @@ export class Effects {
       this.sparkCol[k * 3 + 1] = this.sparkBase[k * 3 + 1] * a;
       this.sparkCol[k * 3 + 2] = this.sparkBase[k * 3 + 2] * a;
     }
-    if (any || this.sparkIdx > 0) {
+    // A spark's last live frame already writes black, so idle frames skip the upload.
+    if (any) {
       this.sparks.geometry.getAttribute('position').needsUpdate = true;
       this.sparks.geometry.getAttribute('color').needsUpdate = true;
     }
@@ -247,7 +252,7 @@ export class Effects {
     const live = new Set(tags.map((t) => t.id));
     for (const [id, g] of this.tagMeshes) {
       if (!live.has(id)) {
-        g.removeFromParent();
+        this.removeTag(g);
         this.tagMeshes.delete(id);
       }
     }
@@ -269,6 +274,11 @@ export class Effects {
     }
   }
 
+  private removeTag(g: THREE.Group): void {
+    g.removeFromParent();
+    for (const o of g.children) if ((o as THREE.Sprite).isSprite) (o as THREE.Sprite).material.dispose();
+  }
+
   private markerSprite(): { sprite: THREE.Sprite; tex: THREE.CanvasTexture } {
     const c = document.createElement('canvas');
     c.width = c.height = 128;
@@ -276,7 +286,7 @@ export class Effects {
     tex.colorSpace = THREE.SRGBColorSpace;
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
     sprite.renderOrder = 20;
-    this.disposables.push(tex, sprite.material);
+    this.matchDisposables.push(tex, sprite.material);
     return { sprite, tex };
   }
 
@@ -324,7 +334,7 @@ export class Effects {
         sprite.position.set(f.pos.x, f.pos.y + 4.2, f.pos.z);
         this.group.add(ring, pole, sprite);
         this.flagVis.push({ ring, pole, cloth, sprite, tex, key: '' });
-        this.disposables.push(ring.geometry, ring.material as THREE.Material, stick.geometry, stick.material as THREE.Material, cloth.geometry, cloth.material as THREE.Material);
+        this.matchDisposables.push(ring.geometry, ring.material as THREE.Material, stick.geometry, stick.material as THREE.Material, cloth.geometry, cloth.material as THREE.Material);
       }
     }
     flags.forEach((f, i) => {
@@ -357,7 +367,7 @@ export class Effects {
       sprite.scale.setScalar(1.2);
       this.group.add(ring, wall, sprite);
       this.hpVis = { ring, wall, sprite, tex, key: '' };
-      this.disposables.push(ring.geometry, ring.material as THREE.Material, wall.geometry, wall.material as THREE.Material);
+      this.matchDisposables.push(ring.geometry, ring.material as THREE.Material, wall.geometry, wall.material as THREE.Material);
     }
     const v = this.hpVis;
     v.ring.position.set(hp.pos.x, hp.pos.y + 0.06, hp.pos.z);
@@ -373,9 +383,42 @@ export class Effects {
     }
   }
 
+  /** Removes everything a match left behind (bullet holes, markers, tags, in-flight effects). */
+  clear(): void {
+    for (const t of this.tracers) {
+      t.active = false;
+      t.mesh.visible = false;
+    }
+    for (const p of [...this.puffs, ...this.flashes]) {
+      p.active = false;
+      p.sprite.visible = false;
+    }
+    for (const d of this.decals) d.visible = false;
+    this.decalIdx = 0;
+    this.sparkLife.fill(0);
+    this.sparkCol.fill(0);
+    this.sparks.geometry.getAttribute('color').needsUpdate = true;
+    for (const g of this.tagMeshes.values()) this.removeTag(g);
+    this.tagMeshes.clear();
+    for (const v of this.flagVis) {
+      v.ring.removeFromParent();
+      v.pole.removeFromParent();
+      v.sprite.removeFromParent();
+    }
+    this.flagVis = [];
+    if (this.hpVis) {
+      this.hpVis.ring.removeFromParent();
+      this.hpVis.wall.removeFromParent();
+      this.hpVis.sprite.removeFromParent();
+      this.hpVis = null;
+    }
+    for (const d of this.matchDisposables) d.dispose();
+    this.matchDisposables = [];
+  }
+
   dispose(): void {
+    this.clear();
     this.group.removeFromParent();
     for (const d of this.disposables) d.dispose();
-    for (const g of this.tagMeshes.values()) g.traverse((o) => ((o as THREE.Sprite).isSprite ? (o as THREE.Sprite).material.dispose() : undefined));
   }
 }

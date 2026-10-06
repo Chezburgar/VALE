@@ -65,6 +65,10 @@ export class Game {
   private menuT = 0;
   private menuMap: MapId;
   private eyeSmooth = PLAYER.eyeStand;
+  /** Eases the camera over stair steps, where the body's height snaps while grounded. */
+  private stepOffset = 0;
+  private stepLastY = 0;
+  private stepGrounded = false;
   private camShake = 0;
   private deathInfo: { killer: Actor | null; weapon: ClassId; headshot: boolean; distance: number } | null = null;
   private stepAccum = new Map<number, number>();
@@ -343,6 +347,8 @@ export class Game {
     (document.activeElement as HTMLElement | null)?.blur?.();
     this.audio.resume();
     this.audio.ui('start');
+    // Fade the theme out under the loading screen rather than cutting it.
+    this.audio.menuMusic(false);
     this.input.requestLock();
     this.menu.showLoading(`Loading ${MAP_INFO[this.progress.prefs.map].name}`);
     // Let the loading screen paint before the (synchronous) build.
@@ -407,8 +413,14 @@ export class Game {
     this.sim = null;
     this.local = null;
     this.deathInfo = null;
+    this.aimedEnemy = null;
+    this.camShake = 0;
+    this.stepOffset = 0;
+    this.stepGrounded = false;
+    this.muzzleLight.intensity = 0;
+    this.effects.clear();
     this.menu.showDeath(null, 0);
-    this.hud.scoreboard(false, null, null);
+    this.hud.reset();
   }
 
   private leaveMatch(): void {
@@ -538,7 +550,7 @@ export class Game {
           });
         }
         for (const t of e.traces) {
-          if (t.hitWorld) this.effects.impact(t.ex, t.ey, t.ez, t.nx, t.ny, t.nz, 'world');
+          if (t.hitWorld) this.effects.impact(t.ex, t.ey, t.ez, t.nx, t.ny, t.nz, 'world', t.decal);
           else if (t.hitActor && t.hitActor !== local) this.effects.impact(t.ex, t.ey, t.ez, 0, 0, 0, 'flesh');
         }
         break;
@@ -593,6 +605,8 @@ export class Game {
           this.deathInfo = null;
           this.menu.showDeath(null, 0);
           this.eyeSmooth = PLAYER.eyeStand;
+          this.stepOffset = 0;
+          this.stepGrounded = false;
           this.adsToggled = false;
         }
         break;
@@ -660,6 +674,8 @@ export class Game {
     this.hud.scoreboard(false, null, null);
     this.menu.showDeath(null, 0);
     this.audio.setMuffled(true);
+    // Results are a menu: the theme comes back (pause and death screens keep the match's sound).
+    this.audio.menuMusic(true);
     const won = match.teams ? match.winnerTeam === local.team : match.winner === local;
     const draw = match.teams && match.winnerTeam === -1;
     const seconds = (performance.now() - this.matchStartReal) / 1000;
@@ -836,8 +852,15 @@ export class Game {
     this.eyeSmooth += (eyeTarget - this.eyeSmooth) * Math.min(1, dt * 14);
     this.camShake = Math.max(0, this.camShake - dt * 3);
     if (local.alive) {
+      const by = local.body.y;
+      if (this.stepGrounded && local.body.onGround && Math.abs(by - this.stepLastY) < 1) {
+        this.stepOffset = Math.max(-0.6, Math.min(0.6, this.stepOffset - (by - this.stepLastY)));
+      }
+      this.stepLastY = by;
+      this.stepGrounded = local.body.onGround;
+      this.stepOffset *= Math.exp(-dt * 18);
       const shake = this.camShake * 0.012;
-      this.camera.position.set(local.body.x, local.body.y + this.eyeSmooth, local.body.z);
+      this.camera.position.set(local.body.x, by + this.eyeSmooth + this.stepOffset, local.body.z);
       this.camera.rotation.set(0, 0, 0, 'YXZ');
       this.camera.rotation.y = local.yaw + (Math.random() - 0.5) * shake;
       this.camera.rotation.x = local.pitch + (Math.random() - 0.5) * shake + local.kick * 0.006;
@@ -848,7 +871,11 @@ export class Game {
       const k = this.deathInfo?.killer;
       const t = Math.min(1, (match.time - local.deathTime) / 0.8);
       const target = k && k.alive ? new THREE.Vector3(k.body.x, k.eyeY, k.body.z) : new THREE.Vector3(local.body.x, local.body.y, local.body.z);
-      const from = new THREE.Vector3(local.body.x, local.body.y + 1.6 + t * 2.2, local.body.z);
+      // Stay under the ceiling when dying indoors.
+      let rise = 1.6 + t * 2.2;
+      const roof = match.world.raycast(local.body.x, local.body.y + 1, local.body.z, 0, 1, 0, rise);
+      if (roof) rise = Math.max(0.9, Math.min(rise, roof.t + 1 - 0.35));
+      const from = new THREE.Vector3(local.body.x, local.body.y + rise, local.body.z);
       this.camera.position.lerp(from, Math.min(1, dt * 4));
       const m = new THREE.Matrix4().lookAt(this.camera.position, target, new THREE.Vector3(0, 1, 0));
       const q = new THREE.Quaternion().setFromRotationMatrix(m);

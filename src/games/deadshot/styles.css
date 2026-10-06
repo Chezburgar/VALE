@@ -859,6 +859,9 @@
 .ds-exit {
   height: 38px;
   font-size: 14px;
+  gap: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .ds-menu-main {
@@ -1484,11 +1487,25 @@ h3.ds-h {
 .ds-end-stats .xp b {
   color: var(--ds-gold);
 }
+/* Results and pause actions stay pinned to the bottom of a scrolling panel. */
+.ds-end-actions,
+.ds-panel-foot {
+  position: sticky;
+  bottom: -22px;
+  margin: 2px -22px -22px;
+  padding: 12px 22px 22px;
+  background: linear-gradient(180deg, rgba(10, 14, 18, 0), rgb(10, 14, 18) 14px);
+  border-radius: 0 0 12px 12px;
+}
 .ds-end-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
-  margin-top: 10px;
+}
+.ds-panel-foot {
+  display: flex;
+  flex-direction: column;
 }
 .ds-end-actions .ds-btn-play {
   height: 48px;
@@ -1496,16 +1513,64 @@ h3.ds-h {
 }
 
 @media (max-width: 1100px) {
+  .ds-menu-top {
+    gap: 16px;
+    padding: 16px 20px 8px;
+  }
+  .ds-logo {
+    font-size: 32px;
+  }
+  .ds-logo small {
+    font-size: 10px;
+  }
+  .ds-tabs button {
+    font-size: 15px;
+    padding: 8px 10px;
+  }
+  .ds-exit {
+    padding: 0 12px;
+  }
+  .ds-exit span {
+    display: none;
+  }
   .ds-menu-main {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 20px;
+    padding: 12px 20px 24px;
   }
   .ds-classes {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .ds-end-grid {
+    grid-template-columns: minmax(0, 1fr) 210px;
+  }
+}
+@media (max-width: 760px) {
+  .ds-menu-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .ds-maps {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ds-player-card {
+    display: none;
   }
   .ds-end-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ds-end-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-height: 640px) {
+  .ds-end-title {
+    font-size: 44px;
+  }
+  .ds-end-table td {
+    padding: 3px 6px;
+  }
+  .ds-end-stats > div {
+    padding: 5px 10px;
   }
 }
