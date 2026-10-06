@@ -1,0 +1,127 @@
+{
+  "index.html": {
+    "file": "assets/index-YRdWElF9.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "dynamicImports": [
+      "src/games/deadshot/index.ts"
+    ],
+    "css": [
+      "assets/index-DngNvtm4.css"
+    ],
+    "assets": [
+      "assets/rajdhani-latin-500-normal-ByNUCHrt.woff2",
+      "assets/rajdhani-latin-500-normal-DfvNI-Td.woff",
+      "assets/rajdhani-latin-600-normal-CXCVEoA9.woff2",
+      "assets/rajdhani-latin-600-normal-Dx02qI2_.woff",
+      "assets/rajdhani-latin-700-normal-BPDUZo87.woff2",
+      "assets/rajdhani-latin-700-normal-e0Uj8ZlN.woff",
+      "assets/inter-latin-400-normal-C38fXH4l.woff2",
+      "assets/inter-latin-400-normal-CyCys3Eg.woff",
+      "assets/inter-latin-500-normal-Cerq10X2.woff2",
+      "assets/inter-latin-500-normal-BL9OpVg8.woff",
+      "assets/inter-latin-600-normal-LgqL8muc.woff2",
+      "assets/inter-latin-600-normal-CiBQ2DWP.woff",
+      "assets/inter-latin-700-normal-Yt3aPRUw.woff2",
+      "assets/inter-latin-700-normal-BLAVimhd.woff"
+    ]
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-400-normal.woff": {
+    "file": "assets/inter-latin-400-normal-CyCys3Eg.woff",
+    "src": "node_modules/@fontsource/inter/files/inter-latin-400-normal.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2": {
+    "file": "assets/inter-latin-400-normal-C38fXH4l.woff2",
+    "src": "node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-500-normal.woff": {
+    "file": "assets/inter-latin-500-normal-BL9OpVg8.woff",
+    "src": "node_modules/@fontsource/inter/files/inter-latin-500-normal.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2": {
+    "file": "assets/inter-latin-500-normal-Cerq10X2.woff2",
+    "src": "node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-600-normal.woff": {
+    "file": "assets/inter-latin-600-normal-CiBQ2DWP.woff",
+    "src": "node_modules/@fontsource/inter/files/inter-latin-600-normal.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2": {
+    "file": "assets/inter-latin-600-normal-LgqL8muc.woff2",
+    "src": "node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-700-normal.woff": {
+    "file": "assets/inter-latin-700-normal-BLAVimhd.woff",
+    "src": "node_modules/@fontsource/inter/files/inter-latin-700-normal.woff"
+  },
+  "node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2": {
+    "file": "assets/inter-latin-700-normal-Yt3aPRUw.woff2",
+    "src": "node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2"
+  },
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff": {
+    "file": "assets/rajdhani-latin-500-normal-DfvNI-Td.woff",
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff"
+  },
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff2": {
+    "file": "assets/rajdhani-latin-500-normal-ByNUCHrt.woff2",
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff2"
+  },
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-600-normal.woff": {
+    "file": "assets/rajdhani-latin-600-normal-Dx02qI2_.woff",
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-600-normal.woff"
+  },
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-600-normal.woff2": {
+    "file": "assets/rajdhani-latin-600-normal-CXCVEoA9.woff2",
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-600-normal.woff2"
+  },
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff": {
+    "file": "assets/rajdhani-latin-700-normal-e0Uj8ZlN.woff",
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff"
+  },
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2": {
+    "file": "assets/rajdhani-latin-700-normal-BPDUZo87.woff2",
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2"
+  },
+  "src/games/deadshot/assets/audio/menu-music.mp3": {
+    "file": "assets/menu-music-CE1A20Hp.mp3",
+    "src": "src/games/deadshot/assets/audio/menu-music.mp3"
+  },
+  "src/games/deadshot/assets/models/ar.glb": {
+    "file": "assets/ar-CDrXot1o.glb",
+    "src": "src/games/deadshot/assets/models/ar.glb"
+  },
+  "src/games/deadshot/assets/models/player.glb": {
+    "file": "assets/player-CqC_crAQ.glb",
+    "src": "src/games/deadshot/assets/models/player.glb"
+  },
+  "src/games/deadshot/assets/models/shotgun.glb": {
+    "file": "assets/shotgun-DMhgX0b9.glb",
+    "src": "src/games/deadshot/assets/models/shotgun.glb"
+  },
+  "src/games/deadshot/assets/models/smg.glb": {
+    "file": "assets/smg-Cah4gQeO.glb",
+    "src": "src/games/deadshot/assets/models/smg.glb"
+  },
+  "src/games/deadshot/assets/models/sniper.glb": {
+    "file": "assets/sniper-DaY6OOU0.glb",
+    "src": "src/games/deadshot/assets/models/sniper.glb"
+  },
+  "src/games/deadshot/index.ts": {
+    "file": "assets/deadshot-CWxJFh6F.js",
+    "name": "deadshot",
+    "src": "src/games/deadshot/index.ts",
+    "isDynamicEntry": true,
+    "css": [
+      "assets/deadshot-BP--Qwbm.css"
+    ],
+    "assets": [
+      "assets/menu-music-CE1A20Hp.mp3",
+      "assets/player-CqC_crAQ.glb",
+      "assets/ar-CDrXot1o.glb",
+      "assets/smg-Cah4gQeO.glb",
+      "assets/shotgun-DMhgX0b9.glb",
+      "assets/sniper-DaY6OOU0.glb"
+    ]
+  }
+}
