@@ -26,7 +26,9 @@ interface Puff {
   active: boolean;
 }
 
-const TRACER_SPEED = 420;
+const TRACER_SPEED = 700;
+/** A miss flies to the end of the weapon's range; past this the streak is just retired. */
+const TRACER_MAX_LIFE = 0.35;
 const SPARKS = 360;
 
 export class Effects {
@@ -185,7 +187,7 @@ export class Effects {
       const front = t.t * TRACER_SPEED;
       const head = Math.min(t.len, front);
       const tail = Math.min(t.len, Math.max(0, front - Math.min(7, t.len * 0.5)));
-      if (tail >= t.len - 0.01) {
+      if (tail >= t.len - 0.01 || t.t > TRACER_MAX_LIFE) {
         t.active = false;
         t.mesh.visible = false;
         continue;

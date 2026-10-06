@@ -3,7 +3,7 @@ import menuTrackUrl from './assets/audio/menu-music.mp3?url';
 
 // Effects and ambience are synthesized with WebAudio. The menu theme is a
 // streamed track (an <audio> element routed into the graph, so it never sits
-// in memory as ~75 MB of decoded PCM) with the old synth pad as a fallback.
+// in memory as ~75 MB of decoded PCM).
 
 interface V3 {
   x: number;
@@ -47,7 +47,6 @@ export class GameAudio {
   private musicFade!: GainNode;
   private noise!: AudioBuffer;
   private ambNodes: AudioNode[] = [];
-  private padNodes: AudioNode[] = [];
   private decks: Deck[] = [];
   private deckIdx = 0;
   private musicOn = false;
@@ -444,11 +443,8 @@ export class GameAudio {
     const c = this.ctx;
     if (!c || this.disposed || !this.musicOn || c.state !== 'running') return;
     clearTimeout(this.musicStopTimer);
-    if (this.trackFailed) {
-      this.startPad();
-      this.rampMusic(1, MUSIC_FADE_IN);
-      return;
-    }
+    // No synth stand-in: a drone in place of the real theme is worse than quiet menus.
+    if (this.trackFailed) return;
     if (!this.decks.length) this.createDecks();
     const deck = this.decks[this.deckIdx];
     if (this.musicStarting) return;
@@ -538,16 +534,9 @@ export class GameAudio {
   private onTrackError(): void {
     if (this.trackFailed || this.disposed) return;
     this.trackFailed = true;
-    console.warn('Deadshot: menu music failed to load, using the synth pad');
+    console.warn('Deadshot: menu music failed to load');
     for (const d of this.decks) this.releaseDeck(d);
     this.decks = [];
-    if (this.musicOn) {
-      // Restart the fade from silence on the pad.
-      this.musicOn = false;
-      this.musicFade.gain.cancelScheduledValues(0);
-      this.musicFade.gain.value = 0;
-      this.menuMusic(true);
-    }
   }
 
   private stopMusicSources(): void {
@@ -556,7 +545,6 @@ export class GameAudio {
     // The idle copy never resumes mid-decay.
     const idle = this.decks[(this.deckIdx + 1) % 2];
     if (idle) this.rewind(idle);
-    this.stopPad();
   }
 
   private releaseDeck(d: Deck): void {
@@ -567,63 +555,13 @@ export class GameAudio {
     d.gain.disconnect();
   }
 
-  /** Slow synth pad, used when the track can't be played. */
-  private startPad(): void {
-    if (this.padNodes.length) return;
-    const c = this.ctx!;
-    const out = c.createGain();
-    out.gain.value = 0.35 / MUSIC_LEVEL;
-    out.connect(this.musicFade);
-    const f = c.createBiquadFilter();
-    f.type = 'lowpass';
-    f.frequency.value = 900;
-    f.Q.value = 3;
-    const lfo = c.createOscillator();
-    lfo.frequency.value = 0.05;
-    const lg = c.createGain();
-    lg.gain.value = 500;
-    lfo.connect(lg).connect(f.frequency);
-    f.connect(out);
-    lfo.start();
-    this.padNodes.push(out, f, lfo, lg);
-    for (const [freq, det] of [
-      [110, -6],
-      [164.8, 5],
-      [220, 0],
-      [261.6, -4],
-    ]) {
-      const o = c.createOscillator();
-      o.type = 'sawtooth';
-      o.frequency.value = freq;
-      o.detune.value = det;
-      const g = c.createGain();
-      g.gain.value = 0.05;
-      o.connect(g).connect(f);
-      o.start();
-      this.padNodes.push(o, g);
-    }
-  }
-
-  private stopPad(): void {
-    for (const n of this.padNodes) {
-      try {
-        (n as AudioScheduledSourceNode).stop?.();
-      } catch {
-        /* already stopped */
-      }
-      n.disconnect();
-    }
-    this.padNodes = [];
-  }
-
   /** Test hook: what the menu music is doing. */
-  musicState(): { on: boolean; fade: number; failed: boolean; ctx: string; pad: boolean; decks: { paused: boolean; time: number; gain: number; src: string }[] } {
+  musicState(): { on: boolean; fade: number; failed: boolean; ctx: string; decks: { paused: boolean; time: number; gain: number; src: string }[] } {
     return {
       on: this.musicOn,
       fade: this.ctx ? this.musicFade.gain.value : 0,
       failed: this.trackFailed,
       ctx: this.ctx?.state ?? 'none',
-      pad: this.padNodes.length > 0,
       decks: this.decks.map((d) => ({ paused: d.el.paused, time: d.el.currentTime, gain: d.gain.gain.value, src: d.el.currentSrc })),
     };
   }
@@ -635,7 +573,6 @@ export class GameAudio {
     clearTimeout(this.musicStopTimer);
     for (const d of this.decks) this.releaseDeck(d);
     this.decks = [];
-    this.stopPad();
     this.ambience(null);
     this.ctx?.close().catch(() => {});
     this.ctx = null;
